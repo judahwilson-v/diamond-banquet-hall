@@ -1,0 +1,13 @@
+{
+  "name": "diamond-banquet-hall",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "mkdir -p dist/css && cp index.html dist/index.html && cp css/style.css dist/css/style.css",
+    "dev": "npm run build && wrangler pages dev dist",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name diamond-banquet-hall"
+  },
+  "devDependencies": {
+    "wrangler": "^4.79.0"
+  }
+}
