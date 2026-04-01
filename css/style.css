@@ -1001,14 +1001,24 @@ h3,
   font-size: 12px;
 }
 
+.site-footer__staff-link {
+  margin-top: 4px;
+}
+
 .site-footer__stealth-link {
-  color: inherit;
+  color: rgba(194, 184, 163, 0.72);
   text-decoration: none;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 11px;
+  transition:
+    color var(--ease),
+    opacity var(--ease);
 }
 
 .site-footer__stealth-link:hover,
 .site-footer__stealth-link:focus-visible {
-  color: inherit;
+  color: var(--color-gold);
   text-decoration: none;
 }
 
