@@ -1,0 +1,420 @@
+:root {
+  --color-black: #0a0a0a;
+  --color-ivory: #f9f9f9;
+  --color-taupe: #c2b8a3;
+  --color-gold: #d4af37;
+  --color-red: #c0392b;
+  --shadow-soft: 0 24px 60px rgba(10, 10, 10, 0.08);
+  --border-soft: 1px solid rgba(10, 10, 10, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 300;
+  color: var(--color-black);
+  background:
+    radial-gradient(circle at top, rgba(212, 175, 55, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(194, 184, 163, 0.2), rgba(249, 249, 249, 0.98));
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+.admin-login__eyebrow,
+.admin-header__eyebrow,
+.admin-panel__eyebrow {
+  margin: 0;
+  font-family: "Playfair Display", serif;
+}
+
+p {
+  margin: 0;
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  border: 1px solid rgba(10, 10, 10, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 14px 16px;
+  min-height: 48px;
+}
+
+textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+.admin-shell {
+  width: min(1180px, calc(100vw - 40px));
+  margin: 0 auto;
+  padding: 40px 0;
+}
+
+.admin-login {
+  min-height: calc(100vh - 80px);
+  display: grid;
+  place-items: center;
+}
+
+.admin-login__card,
+.admin-card,
+.admin-header,
+.admin-tabs {
+  background: rgba(249, 249, 249, 0.96);
+  border: var(--border-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+.admin-login__card {
+  width: min(100%, 520px);
+  padding: 40px;
+  display: grid;
+  gap: 18px;
+}
+
+.admin-login__eyebrow,
+.admin-header__eyebrow,
+.admin-panel__eyebrow {
+  color: var(--color-gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.admin-login h1,
+.admin-header h1 {
+  font-size: clamp(2rem, 5vw, 3.3rem);
+  font-weight: 300;
+}
+
+.admin-login__copy,
+.admin-note {
+  color: rgba(10, 10, 10, 0.68);
+}
+
+.admin-form,
+.admin-form-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-field {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-field span {
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-field--full {
+  grid-column: 1 / -1;
+}
+
+.admin-button {
+  min-height: 48px;
+  padding: 13px 20px;
+  border: 1px solid transparent;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  transition:
+    transform 0.3s ease,
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.admin-button:hover,
+.admin-button:focus-visible {
+  transform: translateY(-1px);
+}
+
+.admin-button--primary {
+  background: var(--color-black);
+  color: var(--color-ivory);
+}
+
+.admin-button--secondary {
+  background: transparent;
+  color: var(--color-black);
+  border-color: rgba(10, 10, 10, 0.12);
+}
+
+.admin-button--gold {
+  background: transparent;
+  color: var(--color-gold);
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.admin-status {
+  min-height: 24px;
+  color: rgba(10, 10, 10, 0.66);
+}
+
+.admin-status.is-error,
+.admin-status[data-tone="error"] {
+  color: var(--color-red);
+}
+
+.admin-status[data-tone="success"] {
+  color: #2d6a4f;
+}
+
+.admin-dashboard {
+  display: grid;
+  gap: 22px;
+}
+
+.admin-header {
+  padding: 28px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 18px;
+}
+
+.admin-tabs {
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-tab {
+  min-height: 44px;
+  padding: 12px 18px;
+  border: 1px solid transparent;
+  background: transparent;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+}
+
+.admin-tab.is-active {
+  background: var(--color-black);
+  color: var(--color-ivory);
+}
+
+.admin-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-panel__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-panel__header h2 {
+  margin-top: 8px;
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+}
+
+.admin-note {
+  max-width: 360px;
+  font-size: 0.94rem;
+}
+
+.admin-note code {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 600;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-grid--bookings,
+.admin-grid--reviews {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-card {
+  padding: 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.admin-card h3 {
+  font-size: 1.4rem;
+  font-weight: 300;
+}
+
+.admin-inline-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mini-calendar__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
+.mini-calendar__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-calendar__controls button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(10, 10, 10, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1.3rem;
+}
+
+.mini-calendar__weekdays,
+.mini-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mini-calendar__weekdays span {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  text-align: center;
+}
+
+.mini-calendar__day {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(10, 10, 10, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.86rem;
+}
+
+.mini-calendar__day.is-booked {
+  background: rgba(192, 57, 43, 0.6);
+  text-decoration: line-through;
+}
+
+.mini-calendar__day.is-outside {
+  opacity: 0.25;
+}
+
+.admin-review-list {
+  display: grid;
+  gap: 14px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.admin-review-card {
+  padding: 18px;
+  background: rgba(194, 184, 163, 0.12);
+  border: var(--border-soft);
+  display: grid;
+  gap: 10px;
+}
+
+.admin-review-card__meta {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-review-card__name {
+  font-weight: 600;
+}
+
+.admin-login__card.is-shaking {
+  animation: login-shake 0.35s ease;
+}
+
+.admin-login__card input.is-error {
+  border-color: var(--color-red);
+}
+
+@keyframes login-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-7px);
+  }
+
+  75% {
+    transform: translateX(7px);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-shell {
+    width: min(100vw - 24px, 100%);
+    padding: 24px 0;
+  }
+
+  .admin-header,
+  .admin-panel__header,
+  .admin-grid--bookings,
+  .admin-grid--reviews {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .admin-login__card,
+  .admin-card,
+  .admin-header {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-actions {
+    flex-direction: column;
+  }
+
+  .admin-button {
+    width: 100%;
+  }
+
+  .mini-calendar__day {
+    min-height: 48px;
+  }
+}

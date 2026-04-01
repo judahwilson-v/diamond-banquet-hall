@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diamond Banquet Hall Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&amp;family=Playfair+Display:wght@300;400;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/admin.css" />
+  </head>
+  <body class="admin-body">
+    <main class="admin-shell">
+      <section class="admin-login" id="admin-login">
+        <div class="admin-login__card" id="admin-login-card">
+          <p class="admin-login__eyebrow">Diamond — Admin Portal</p>
+          <h1>Manage the website without editing code by hand.</h1>
+          <p class="admin-login__copy">
+            Enter your admin password to update booked dates, prepare review files,
+            and save local device settings.
+          </p>
+          <form id="admin-login-form" class="admin-form">
+            <label class="admin-field">
+              <span>Password</span>
+              <input
+                id="admin-password"
+                type="password"
+                aria-label="Admin password"
+                autocomplete="current-password"
+                placeholder="Enter admin password"
+              />
+            </label>
+            <button class="admin-button admin-button--primary" type="submit">Login</button>
+            <p class="admin-status" id="admin-login-status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-dashboard" id="admin-dashboard" hidden>
+        <header class="admin-header">
+          <div>
+            <p class="admin-header__eyebrow">Diamond Admin</p>
+            <h1>Control Panel</h1>
+          </div>
+          <button class="admin-button admin-button--secondary" id="admin-logout" type="button">
+            Logout
+          </button>
+        </header>
+
+        <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+          <button class="admin-tab is-active" type="button" data-tab-target="bookings" role="tab">
+            Booking Manager
+          </button>
+          <button class="admin-tab" type="button" data-tab-target="settings" role="tab">
+            Site Settings
+          </button>
+          <button class="admin-tab" type="button" data-tab-target="reviews" role="tab">
+            Add Review
+          </button>
+        </div>
+
+        <section class="admin-panel is-active" id="tab-bookings" role="tabpanel">
+          <div class="admin-panel__header">
+            <div>
+              <p class="admin-panel__eyebrow">Tab 1</p>
+              <h2>Manage Booked Dates</h2>
+            </div>
+            <p class="admin-note">
+              After downloading, replace <code>js/bookings.js</code> in your GitHub
+              repository. The website will update automatically within 1 minute.
+            </p>
+          </div>
+
+          <div class="admin-grid admin-grid--bookings">
+            <div class="admin-card">
+              <label class="admin-field">
+                <span>Current bookedDates file</span>
+                <textarea
+                  id="booking-file-preview"
+                  aria-label="Current booked dates file preview"
+                  readonly
+                ></textarea>
+              </label>
+
+              <div class="admin-inline-form">
+                <label class="admin-field">
+                  <span>Date</span>
+                  <input
+                    id="booking-date-input"
+                    type="date"
+                    aria-label="Booking date"
+                  />
+                </label>
+                <div class="admin-actions">
+                  <button class="admin-button admin-button--primary" id="mark-booked" type="button">
+                    + Mark as Booked
+                  </button>
+                  <button class="admin-button admin-button--secondary" id="mark-available" type="button">
+                    − Mark as Available
+                  </button>
+                </div>
+              </div>
+
+              <button class="admin-button admin-button--gold" id="download-bookings" type="button">
+                Download updated bookings.js
+              </button>
+              <p class="admin-status" id="booking-status" aria-live="polite"></p>
+            </div>
+
+            <div class="admin-card">
+              <div class="mini-calendar__header">
+                <h3>Live Preview</h3>
+                <div class="mini-calendar__controls">
+                  <button id="admin-calendar-prev" type="button" aria-label="Previous month">‹</button>
+                  <span id="admin-calendar-label"></span>
+                  <button id="admin-calendar-next" type="button" aria-label="Next month">›</button>
+                </div>
+              </div>
+              <div class="mini-calendar__weekdays" aria-hidden="true">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
+              <div class="mini-calendar__grid" id="admin-calendar-days"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-panel" id="tab-settings" role="tabpanel" hidden>
+          <div class="admin-panel__header">
+            <div>
+              <p class="admin-panel__eyebrow">Tab 2</p>
+              <h2>Edit Site Content</h2>
+            </div>
+            <p class="admin-note">
+              These changes apply immediately on this device. For permanent changes
+              across all devices, update the BRAND CONSTANTS at the top of
+              <code>main.js</code>.
+            </p>
+          </div>
+
+          <form id="site-settings-form" class="admin-card admin-form-grid">
+            <label class="admin-field">
+              <span>Phone number</span>
+              <input
+                id="setting-phone"
+                type="text"
+                aria-label="Phone number"
+                placeholder="+91 99476 81202"
+              />
+            </label>
+            <label class="admin-field">
+              <span>WhatsApp number</span>
+              <input
+                id="setting-whatsapp"
+                type="text"
+                aria-label="WhatsApp number"
+                placeholder="+91 99476 81202"
+              />
+            </label>
+            <label class="admin-field">
+              <span>Instagram handle</span>
+              <input
+                id="setting-instagram"
+                type="text"
+                aria-label="Instagram handle"
+                placeholder="@diamondhallallapra"
+              />
+            </label>
+            <label class="admin-field">
+              <span>Google Maps URL</span>
+              <input
+                id="setting-maps"
+                type="url"
+                aria-label="Google Maps URL"
+                placeholder="https://maps.app.goo.gl/..."
+              />
+            </label>
+            <label class="admin-field">
+              <span>Hall pricing (₹ per 4 hours)</span>
+              <input
+                id="setting-hall-price"
+                type="number"
+                aria-label="Hall pricing"
+                min="0"
+              />
+            </label>
+            <label class="admin-field">
+              <span>Room pricing (₹ per night)</span>
+              <input
+                id="setting-room-price"
+                type="number"
+                aria-label="Room pricing"
+                min="0"
+              />
+            </label>
+            <label class="admin-field">
+              <span>Number of rooms</span>
+              <input
+                id="setting-room-count"
+                type="number"
+                aria-label="Number of rooms"
+                min="1"
+              />
+            </label>
+            <div class="admin-actions">
+              <button class="admin-button admin-button--primary" type="submit">
+                Save Settings
+              </button>
+            </div>
+            <p class="admin-status" id="settings-status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section class="admin-panel" id="tab-reviews" role="tabpanel" hidden>
+          <div class="admin-panel__header">
+            <div>
+              <p class="admin-panel__eyebrow">Tab 3</p>
+              <h2>Add a Customer Review</h2>
+            </div>
+            <p class="admin-note">
+              Download and replace <code>js/reviews.js</code> on GitHub.
+            </p>
+          </div>
+
+          <div class="admin-grid admin-grid--reviews">
+            <form id="review-form" class="admin-card admin-form-grid">
+              <label class="admin-field">
+                <span>Name</span>
+                <input id="review-name" type="text" aria-label="Reviewer name" />
+              </label>
+              <label class="admin-field">
+                <span>Event type</span>
+                <select id="review-event" aria-label="Event type">
+                  <option value="Wedding">Wedding</option>
+                  <option value="Reception">Reception</option>
+                  <option value="Engagement">Engagement</option>
+                  <option value="Birthday">Birthday</option>
+                  <option value="Corporate">Corporate</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label class="admin-field">
+                <span>Date</span>
+                <input
+                  id="review-date"
+                  type="text"
+                  aria-label="Review date"
+                  placeholder="March 2025"
+                />
+              </label>
+              <label class="admin-field admin-field--full">
+                <span>Review text</span>
+                <textarea
+                  id="review-text"
+                  aria-label="Review text"
+                  placeholder="Write the customer's feedback here"
+                ></textarea>
+              </label>
+              <div class="admin-actions">
+                <button class="admin-button admin-button--primary" type="submit">
+                  Add Review
+                </button>
+                <button class="admin-button admin-button--gold" id="download-reviews" type="button">
+                  Download updated reviews.js
+                </button>
+              </div>
+              <p class="admin-status" id="reviews-status" aria-live="polite"></p>
+            </form>
+
+            <div class="admin-card">
+              <h3>Current Reviews</h3>
+              <div class="admin-review-list" id="admin-review-list"></div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="js/bookings.js"></script>
+    <script src="js/reviews.js"></script>
+    <script src="js/admin.js"></script>
+  </body>
+</html>

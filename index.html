@@ -1,41 +1,83 @@
+<!--
+  IMAGES REQUIRED (place all in /images/ folder):
+  hero.jpg      — Main hall exterior or wide interior shot
+  hall1.jpg     — Hall interior with decoration/setup
+  hall2.jpg     — Hall interior from different angle
+  hall3.jpg     — Stage or entrance area
+  room.jpg      — Guest room interior
+  parking.jpg   — Parking area or exterior
+  favicon.ico   — 32×32 icon (can use a diamond shape)
+
+  WhatsApp Judah at +91 99476 81202 to receive photos.
+  Rename files EXACTLY as above before uploading to GitHub.
+-->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Diamond Banquet Hall | Kochi</title>
+    <title>Diamond Banquet Hall | Allapra, Perumbavoor</title>
     <meta
       name="description"
-      content="Diamond Banquet Hall, Kochi. A minimalist editorial luxury website experience for celebrations, receptions, and large-format gatherings."
+      content="Luxury AC banquet hall in Allapra, Perumbavoor. 250 guests capacity. Hall ₹30,000/4hrs. 4 AC rooms at ₹1,500/night. Book via WhatsApp or call."
     />
-    <script>
-      document.documentElement.classList.add("has-js");
+    <meta
+      name="keywords"
+      content="banquet hall perumbavoor, wedding hall allapra, ac hall kochi, diamond banquet hall"
+    />
+    <meta property="og:title" content="Diamond Banquet Hall | Allapra, Perumbavoor" />
+    <meta
+      property="og:description"
+      content="Luxury AC banquet hall in Allapra, Perumbavoor. 250 guests capacity. Hall ₹30,000/4hrs. 4 AC rooms at ₹1,500/night. Book via WhatsApp or call."
+    />
+    <meta property="og:image" content="images/hero.jpg" />
+    <meta property="og:url" content="https://diamondbanquethall.com" />
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://diamondbanquethall.com" />
+    <link rel="icon" href="images/favicon.ico" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "EventVenue",
+        "name": "Diamond Banquet Hall",
+        "url": "https://diamondbanquethall.com",
+        "image": "https://diamondbanquethall.com/images/hero.jpg",
+        "telephone": "+91 99476 81202",
+        "priceRange": "₹₹",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "First Floor, Diamond Arcade, Allapra P.O",
+          "addressLocality": "Perumbavoor",
+          "addressRegion": "Kerala",
+          "postalCode": "683556",
+          "addressCountry": "IN"
+        },
+        "sameAs": [
+          "https://instagram.com/diamondhallallapra",
+          "https://maps.app.goo.gl/vZWrqc6f6b9hvNj88"
+        ]
+      }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400&amp;family=Playfair+Display:wght@300;400&amp;display=swap"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&amp;family=Playfair+Display:wght@300;400;700&amp;display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
+    <div id="loading-screen" aria-hidden="true">
+      <div class="loading-screen__inner">
+        <p class="loading-screen__wordmark">Diamond</p>
+        <span class="loading-screen__line"></span>
+      </div>
+    </div>
+
     <header class="site-header">
       <nav class="site-nav" aria-label="Primary navigation">
-        <div class="nav-group nav-group--left" aria-label="Primary links">
-          <a href="#about">About</a>
-          <a href="#spaces">Spaces</a>
-        </div>
-
-        <a class="brand-mark" href="#top" aria-label="Diamond Banquet Hall home">
-          <span class="brand-mark__eyebrow">Kochi</span>
-          <span class="brand-mark__name">Diamond Banquet Hall</span>
-        </a>
-
-        <div class="nav-group nav-group--right" aria-label="Secondary links">
-          <a href="#rooms">Rooms</a>
-          <a href="#enquire">Enquire</a>
-        </div>
+        <a class="site-logo" href="#top">Diamond</a>
 
         <button
           class="nav-toggle"
@@ -46,358 +88,672 @@
         >
           <span></span>
           <span></span>
+          <span></span>
         </button>
+
+        <div class="site-nav__links">
+          <a href="#hall">Hall</a>
+          <a href="#rooms">Rooms</a>
+          <a href="#gallery">Gallery</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#reviews">Reviews</a>
+          <a href="#contact">Contact</a>
+        </div>
       </nav>
 
       <div class="mobile-menu" id="mobile-menu" hidden>
-        <a href="#about">About</a>
-        <a href="#spaces">Spaces</a>
+        <a href="#hall">Hall</a>
         <a href="#rooms">Rooms</a>
-        <a href="#enquire">Enquire</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#contact">Contact</a>
       </div>
     </header>
 
-    <main id="top" class="site-main">
-      <section class="hero" aria-labelledby="hero-title">
-        <div
-          class="hero__media"
-          role="img"
-          aria-label="An elegant banquet hall prepared for a luxury celebration"
-        ></div>
-
-        <div class="hero__content">
-          <p class="hero__eyebrow">Diamond Banquet Hall, Kochi</p>
-          <h1 id="hero-title">Celebrations framed with quiet luxury.</h1>
-          <p class="hero__copy">
-            A refined destination for weddings, receptions, and milestone gatherings,
-            shaped around light, scale, and an atmosphere that lets every moment stand
-            forward.
-          </p>
-          <a class="ghost-button" href="#enquire">Check Availability</a>
+    <main id="top">
+      <section class="hero" aria-label="Hero section">
+        <div class="hero__media"></div>
+        <div class="hero__overlay"></div>
+        <div class="hero__content" data-reveal>
+          <p class="hero__subline" data-brand-text="locationLabel">Allapra, Perumbavoor</p>
+          <h1>Diamond Banquet Hall</h1>
+          <p class="hero__tagline">Where every celebration becomes a memory</p>
+          <div class="hero__actions">
+            <button class="button button--ghost" type="button" data-open-calendar>
+              Check Availability
+            </button>
+            <a
+              class="button button--ghost"
+              href="https://wa.me/919947681202"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-brand-href="whatsappHref"
+            >
+              WhatsApp Us
+            </a>
+          </div>
         </div>
       </section>
 
-      <section class="intro-section" id="about" aria-labelledby="intro-title">
-        <div class="intro-section__inner" data-reveal>
-          <p class="section-label">Editorial Introduction</p>
-          <h2 id="intro-title">A calm arrival into the story of the venue.</h2>
-          <p class="intro-section__copy">
-            The visual language stays restrained so the photography remains central,
-            while the content below begins to introduce the scale, comfort, and polish
-            of the experience without competing for attention.
-          </p>
-        </div>
-      </section>
-
-      <section class="features-section" id="spaces" aria-labelledby="features-title">
-        <div class="features-section__intro" data-reveal>
-          <p class="section-label">Venue Features</p>
-          <h2 id="features-title">Large-format comfort, edited into four defining details.</h2>
+      <section class="section hall-section" id="hall" aria-label="Hall highlights">
+        <div class="section-heading" data-reveal>
+          <p class="section-heading__eyebrow">The Hall</p>
+          <h2>Celebration spaces shaped for elegance and ease.</h2>
         </div>
 
-        <div class="features-list">
-          <article class="feature-panel feature-panel--capacity" id="capacity" data-reveal>
-            <div
-              class="feature-panel__media"
-              role="img"
-              aria-label="Wide banquet hall arranged for a large celebration"
-            ></div>
-
-            <div class="feature-panel__body">
-              <div class="feature-panel__icon" aria-hidden="true">
-                <svg viewBox="0 0 48 48">
-                  <path d="M15 18a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
-                  <path d="M33 18a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
-                  <path d="M24 24a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" />
-                  <path d="M6 38c1.5-4.7 5.6-7 9-7s7.5 2.3 9 7" />
-                  <path d="M24 38c1.7-5.3 6.1-8 10-8 4 0 8.4 2.7 10 8" />
-                </svg>
-              </div>
-              <p class="feature-panel__meta">Feature 01</p>
-              <h3>500 Capacity</h3>
-              <span class="feature-panel__rule"></span>
-              <p class="feature-panel__copy">
-                Spacious enough for large celebrations, with a layout that still feels
-                composed, breathable, and visually polished from arrival to stage.
+        <div class="feature-stack">
+          <article class="feature-row" data-reveal>
+            <figure class="feature-row__media">
+              <img
+                src="images/hall1.jpg"
+                loading="lazy"
+                alt="Decorated banquet hall prepared for a wedding celebration"
+              />
+            </figure>
+            <div class="feature-row__body">
+              <h3>Grand Banquet Hall</h3>
+              <p>
+                Accommodate up to 250 guests in our fully air-conditioned hall.
+                Perfect for weddings, receptions, engagements, and corporate events.
               </p>
+              <span class="detail-chip" data-brand-html="hallFeatureChip"
+                >250 Guests · Full AC · ₹30,000 / 4 hrs</span
+              >
             </div>
           </article>
 
-          <article
-            class="feature-panel feature-panel--reverse feature-panel--climate"
-            id="climate"
-            data-reveal
+          <article class="feature-row feature-row--reverse" data-reveal>
+            <figure class="feature-row__media">
+              <img
+                src="images/hall2.jpg"
+                loading="lazy"
+                alt="Elegant banquet hall interior with seating and premium event setup"
+              />
+            </figure>
+            <div class="feature-row__body">
+              <h3>Premium Amenities</h3>
+              <p>
+                Professional lighting, high-end sound systems, valet parking, power
+                backup, and a dedicated events team ensuring every detail is perfect.
+              </p>
+              <span class="detail-chip"
+                >Power Backup · Valet Parking · Sound System</span
+              >
+            </div>
+          </article>
+
+          <article class="feature-row" data-reveal>
+            <figure class="feature-row__media">
+              <img
+                src="images/hall3.jpg"
+                loading="lazy"
+                alt="Banquet hall stage and entrance area prepared for an event"
+              />
+            </figure>
+            <div class="feature-row__body">
+              <h3>Versatile Occasions</h3>
+              <p>
+                From intimate engagements to grand weddings — our space transforms to
+                match your vision. Outdoor decor permitted.
+              </p>
+              <span class="detail-chip">Weddings · Receptions · Corporate Events</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section rooms-section" id="rooms" aria-label="Guest rooms">
+        <div class="section-heading" data-reveal>
+          <p class="section-heading__eyebrow">Stay In Comfort</p>
+          <h2>Luxury Guest Rooms</h2>
+          <p data-brand-html="roomSummary">4 air-conditioned rooms for your guests</p>
+        </div>
+
+        <div class="rooms-grid">
+          <article class="room-card" data-reveal>
+            <div class="room-card__media">
+              <img
+                src="images/room.jpg"
+                loading="lazy"
+                alt="Guest room interior with air-conditioning and en-suite bathroom"
+              />
+            </div>
+            <div class="room-card__body">
+              <p class="room-card__number">Room 01</p>
+              <p class="room-card__meta">AC · En-suite · Sleeps 2</p>
+              <p class="room-card__price" data-brand-html="roomPrice">₹1,500 / night</p>
+              <a
+                class="button button--solid"
+                href="https://wa.me/919947681202"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-brand-href="whatsappHref"
+                data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about Room 01 for my event stay."
+              >
+                Enquire
+              </a>
+            </div>
+          </article>
+
+          <article class="room-card" data-reveal>
+            <div class="room-card__media">
+              <img
+                src="images/room.jpg"
+                loading="lazy"
+                alt="Second guest room interior with comfortable bedding"
+              />
+            </div>
+            <div class="room-card__body">
+              <p class="room-card__number">Room 02</p>
+              <p class="room-card__meta">AC · En-suite · Sleeps 2</p>
+              <p class="room-card__price" data-brand-html="roomPrice">₹1,500 / night</p>
+              <a
+                class="button button--solid"
+                href="https://wa.me/919947681202"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-brand-href="whatsappHref"
+                data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about Room 02 for my event stay."
+              >
+                Enquire
+              </a>
+            </div>
+          </article>
+
+          <article class="room-card" data-reveal>
+            <div class="room-card__media">
+              <img
+                src="images/room.jpg"
+                loading="lazy"
+                alt="Third guest room prepared for overnight stay"
+              />
+            </div>
+            <div class="room-card__body">
+              <p class="room-card__number">Room 03</p>
+              <p class="room-card__meta">AC · En-suite · Sleeps 2</p>
+              <p class="room-card__price" data-brand-html="roomPrice">₹1,500 / night</p>
+              <a
+                class="button button--solid"
+                href="https://wa.me/919947681202"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-brand-href="whatsappHref"
+                data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about Room 03 for my event stay."
+              >
+                Enquire
+              </a>
+            </div>
+          </article>
+
+          <article class="room-card" data-reveal>
+            <div class="room-card__media">
+              <img
+                src="images/room.jpg"
+                loading="lazy"
+                alt="Fourth guest room with premium interior finishes"
+              />
+            </div>
+            <div class="room-card__body">
+              <p class="room-card__number">Room 04</p>
+              <p class="room-card__meta">AC · En-suite · Sleeps 2</p>
+              <p class="room-card__price" data-brand-html="roomPrice">₹1,500 / night</p>
+              <a
+                class="button button--solid"
+                href="https://wa.me/919947681202"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-brand-href="whatsappHref"
+                data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about Room 04 for my event stay."
+              >
+                Enquire
+              </a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section gallery-section" id="gallery" aria-label="Photo gallery">
+        <div class="section-heading" data-reveal>
+          <p class="section-heading__eyebrow">Gallery</p>
+          <h2>The Venue</h2>
+          <p>A space designed to impress</p>
+          <span class="section-heading__underline"></span>
+        </div>
+
+        <div class="gallery-masonry" data-reveal>
+          <button
+            class="gallery-item"
+            type="button"
+            data-gallery-item
+            data-lightbox-src="images/hero.jpg"
+            data-lightbox-alt="Wide interior view of Diamond Banquet Hall"
           >
-            <div
-              class="feature-panel__media"
-              role="img"
-              aria-label="Elegant fully air-conditioned indoor event hall"
-            ></div>
+            <img
+              src="images/hero.jpg"
+              loading="lazy"
+              alt="Wide interior view of Diamond Banquet Hall"
+            />
+          </button>
 
-            <div class="feature-panel__body">
-              <div class="feature-panel__icon" aria-hidden="true">
-                <svg viewBox="0 0 48 48">
-                  <path d="M24 6v36" />
-                  <path d="M24 10l-4-4" />
-                  <path d="M24 10l4-4" />
-                  <path d="M24 38l-4 4" />
-                  <path d="M24 38l4 4" />
-                  <path d="M8 16l32 16" />
-                  <path d="M12 18l-1-5" />
-                  <path d="M12 18l5-2" />
-                  <path d="M36 30l1 5" />
-                  <path d="M36 30l-5 2" />
-                  <path d="M8 32 40 16" />
-                  <path d="M12 30l-1 5" />
-                  <path d="M12 30l5 2" />
-                  <path d="M36 18l1-5" />
-                  <path d="M36 18l-5-2" />
-                </svg>
-              </div>
-              <p class="feature-panel__meta">Feature 02</p>
-              <h3>A/C Hall</h3>
-              <span class="feature-panel__rule"></span>
-              <p class="feature-panel__copy">
-                A consistently cool indoor environment designed for Kerala celebrations,
-                keeping guests comfortable throughout long ceremonies and receptions.
-              </p>
-            </div>
-          </article>
-
-          <article class="feature-panel feature-panel--rooms" id="rooms" data-reveal>
-            <div
-              class="feature-panel__media"
-              role="img"
-              aria-label="Luxury guest room with refined interiors and soft lighting"
-            ></div>
-
-            <div class="feature-panel__body">
-              <div class="feature-panel__icon" aria-hidden="true">
-                <svg viewBox="0 0 48 48">
-                  <path d="M7 32h34" />
-                  <path d="M10 32V20h28v12" />
-                  <path d="M14 20v-5h11a5 5 0 0 1 5 5" />
-                  <path d="M16 25h8" />
-                  <path d="M7 37v-5" />
-                  <path d="M41 37v-5" />
-                </svg>
-              </div>
-              <p class="feature-panel__meta">Feature 03</p>
-              <h3>Luxury Guest Rooms</h3>
-              <span class="feature-panel__rule"></span>
-              <p class="feature-panel__copy">
-                Refined rooms for family stays, bridal preparation, and overnight comfort,
-                extending the event experience beyond the main hall itself.
-              </p>
-            </div>
-          </article>
-
-          <article
-            class="feature-panel feature-panel--reverse feature-panel--parking"
-            id="parking"
-            data-reveal
+          <button
+            class="gallery-item"
+            type="button"
+            data-gallery-item
+            data-lightbox-src="images/hall1.jpg"
+            data-lightbox-alt="Banquet hall decorated for a celebration"
           >
-            <div
-              class="feature-panel__media"
-              role="img"
-              aria-label="Smooth arrival experience with ample valet parking"
-            ></div>
+            <img
+              src="images/hall1.jpg"
+              loading="lazy"
+              alt="Banquet hall decorated for a celebration"
+            />
+          </button>
 
-            <div class="feature-panel__body">
-              <div class="feature-panel__icon" aria-hidden="true">
-                <svg viewBox="0 0 48 48">
-                  <path d="M14 31h20" />
-                  <path d="M18 31v-7h10a4 4 0 0 0 0-8h-10v18" />
-                  <path d="M9 27h4" />
-                  <path d="M35 27h4" />
-                  <path d="M12 36a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-                  <path d="M36 36a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-                </svg>
-              </div>
-              <p class="feature-panel__meta">Feature 04</p>
-              <h3>Ample Valet Parking</h3>
-              <span class="feature-panel__rule"></span>
-              <p class="feature-panel__copy">
-                Arrival remains effortless even for high guest counts, with circulation
-                planned to feel smooth, orderly, and welcoming from the first moment.
+          <button
+            class="gallery-item"
+            type="button"
+            data-gallery-item
+            data-lightbox-src="images/hall2.jpg"
+            data-lightbox-alt="Hall seating and lighting setup"
+          >
+            <img src="images/hall2.jpg" loading="lazy" alt="Hall seating and lighting setup" />
+          </button>
+
+          <button
+            class="gallery-item"
+            type="button"
+            data-gallery-item
+            data-lightbox-src="images/hall3.jpg"
+            data-lightbox-alt="Stage and entrance area of the banquet hall"
+          >
+            <img
+              src="images/hall3.jpg"
+              loading="lazy"
+              alt="Stage and entrance area of the banquet hall"
+            />
+          </button>
+
+          <button
+            class="gallery-item"
+            type="button"
+            data-gallery-item
+            data-lightbox-src="images/room.jpg"
+            data-lightbox-alt="Luxury guest room prepared for visitors"
+          >
+            <img
+              src="images/room.jpg"
+              loading="lazy"
+              alt="Luxury guest room prepared for visitors"
+            />
+          </button>
+
+          <button
+            class="gallery-item"
+            type="button"
+            data-gallery-item
+            data-lightbox-src="images/parking.jpg"
+            data-lightbox-alt="Parking and exterior arrival area"
+          >
+            <img
+              src="images/parking.jpg"
+              loading="lazy"
+              alt="Parking and exterior arrival area"
+            />
+          </button>
+        </div>
+      </section>
+
+      <section class="section pricing-section" id="pricing" aria-label="Pricing">
+        <div class="section-heading section-heading--light" data-reveal>
+          <p class="section-heading__eyebrow">Pricing</p>
+          <h2>Transparent Pricing</h2>
+        </div>
+
+        <div class="pricing-grid">
+          <article class="pricing-card" data-reveal>
+            <div class="pricing-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48">
+                <path d="M10 39V13l14-8 14 8v26" />
+                <path d="M18 39V26h12v13" />
+                <path d="M17 18h.01" />
+                <path d="M31 18h.01" />
+              </svg>
+            </div>
+            <h3>Banquet Hall</h3>
+            <p class="pricing-card__amount" data-brand-html="hallPriceAmount">₹30,000</p>
+            <p class="pricing-card__sub">per 4-hour slot</p>
+            <ul class="pricing-list">
+              <li>Up to 250 guests</li>
+              <li>Fully air-conditioned</li>
+              <li>Valet parking included</li>
+              <li>Power backup</li>
+              <li>Professional lighting &amp; sound</li>
+              <li>Outdoor decor permitted</li>
+            </ul>
+            <button class="button button--ghost-light" type="button" data-open-calendar>
+              Check Availability
+            </button>
+          </article>
+
+          <article class="pricing-card" data-reveal>
+            <div class="pricing-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48">
+                <path d="M8 31h32" />
+                <path d="M12 31V21h24v10" />
+                <path d="M12 24h9a4 4 0 0 0 4-4v-1a4 4 0 0 0-4-4h-9z" />
+                <path d="M10 38v-7" />
+                <path d="M38 38v-7" />
+              </svg>
+            </div>
+            <h3>Guest Rooms</h3>
+            <p class="pricing-card__amount" data-brand-html="roomPriceAmount">₹1,500</p>
+            <p class="pricing-card__sub">per room, per night</p>
+            <ul class="pricing-list">
+              <li>4 AC rooms available</li>
+              <li>En-suite bathroom</li>
+              <li>Sleeps 2 per room</li>
+              <li>Available night of event</li>
+            </ul>
+            <a
+              class="button button--ghost-light"
+              href="https://wa.me/919947681202"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-brand-href="whatsappHref"
+              data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about your guest room availability and pricing."
+            >
+              Book a Room
+            </a>
+          </article>
+        </div>
+
+        <p class="pricing-section__note" data-reveal>
+          For custom packages or bulk bookings, contact us directly.
+        </p>
+      </section>
+
+      <section class="section faq-section" aria-label="Frequently asked questions">
+        <div class="section-heading" data-reveal>
+          <p class="section-heading__eyebrow">FAQ</p>
+          <h2>Frequently Asked Questions</h2>
+        </div>
+
+        <div class="faq-list" data-reveal>
+          <article class="faq-item is-open">
+            <button class="faq-item__button" type="button" aria-expanded="true">
+              What events can be hosted here?
+            </button>
+            <div class="faq-item__panel">
+              <p>
+                We host weddings, engagements, receptions, birthday parties,
+                anniversary celebrations, baby showers, and corporate events.
+              </p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <button class="faq-item__button" type="button" aria-expanded="false">
+              Is outside catering allowed?
+            </button>
+            <div class="faq-item__panel">
+              <p>
+                Yes, outside catering is permitted. We also have recommendations for
+                trusted local caterers.
+              </p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <button class="faq-item__button" type="button" aria-expanded="false">
+              What is included in the ₹30,000 package?
+            </button>
+            <div class="faq-item__panel">
+              <p>
+                The hall rental for a 4-hour slot, valet parking, power backup, and
+                professional lighting and sound system.
+              </p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <button class="faq-item__button" type="button" aria-expanded="false">
+              How do I confirm a booking?
+            </button>
+            <div class="faq-item__panel">
+              <p>
+                Contact us via WhatsApp or call +91 99476 81202. A booking advance
+                will confirm your date.
+              </p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <button class="faq-item__button" type="button" aria-expanded="false">
+              Are rooms mandatory to book with the hall?
+            </button>
+            <div class="faq-item__panel">
+              <p>
+                No. Rooms are optional and can be booked independently at ₹1,500 per
+                room per night.
+              </p>
+            </div>
+          </article>
+
+          <article class="faq-item">
+            <button class="faq-item__button" type="button" aria-expanded="false">
+              Is parking available?
+            </button>
+            <div class="faq-item__panel">
+              <p>
+                Yes, ample valet parking is available on the premises at no extra
+                charge.
               </p>
             </div>
           </article>
         </div>
       </section>
 
-      <section class="enquiry-section" id="enquire" aria-labelledby="enquire-title">
-        <div class="enquiry-section__grid">
-          <div class="enquiry-copy" data-reveal>
-            <p class="section-label">Check Availability</p>
-            <h2 id="enquire-title">Tell us the date. We’ll shape the setting around it.</h2>
-            <p class="enquiry-copy__text">
-              For weddings, receptions, engagements, and family gatherings, begin with
-              the essentials and let the next conversation focus on atmosphere, scale,
-              and how the day should feel from arrival onward.
-            </p>
+      <section class="section reviews-section" id="reviews" aria-label="Customer reviews">
+        <div class="section-heading reviews-section__heading" data-reveal>
+          <p class="section-heading__eyebrow">110+ Happy Families · Allapra, Perumbavoor</p>
+          <h2>What Our Customers Are Saying</h2>
+        </div>
 
-            <div class="enquiry-points" aria-label="Planning highlights">
-              <p>Date-first planning for venue flow and timing.</p>
-              <p>Guest-count guidance for hall comfort and seating rhythm.</p>
-              <p>Room and arrival coordination for a smoother event day.</p>
-            </div>
+        <div class="reviews-track" id="reviews-track" data-reveal></div>
+
+        <div class="reviews-section__action" data-reveal>
+          <a
+            id="reviews-link"
+            href="https://maps.app.goo.gl/vZWrqc6f6b9hvNj88"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-brand-href="mapsHref"
+          >
+            View all reviews on Google
+          </a>
+        </div>
+      </section>
+
+      <section class="section contact-section" id="contact" aria-label="Contact information">
+        <div class="contact-grid">
+          <div class="contact-copy" data-reveal>
+            <p class="section-heading__eyebrow">Contact</p>
+            <h2>Find Us</h2>
+            <address>
+              <span data-brand-text="addressLine1">First Floor, Diamond Arcade, Allapra P.O,</span><br />
+              <span data-brand-text="addressLine2">Perumbavoor, Ernakulam, Kerala 683556</span>
+            </address>
+            <ul class="contact-list">
+              <li>
+                <span>Phone</span>
+                <a href="tel:+919947681202" data-brand-href="phoneHref" data-brand-text="phoneDisplay"
+                  >+91 99476 81202</a
+                >
+              </li>
+              <li>
+                <span>WhatsApp</span>
+                <a
+                  href="https://wa.me/919947681202"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-brand-href="whatsappHref"
+                >
+                  Chat on WhatsApp
+                </a>
+              </li>
+              <li>
+                <span>Instagram</span>
+                <a
+                  href="https://instagram.com/diamondhallallapra"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-brand-href="instagramHref"
+                  data-brand-text="instagramHandle"
+                  >@diamondhallallapra</a
+                >
+              </li>
+              <li>
+                <span>Hours</span>
+                <strong data-brand-text="inquiryHours">Open for inquiries 9 AM – 9 PM, all days</strong>
+              </li>
+            </ul>
           </div>
 
-          <form class="contact-card" data-reveal>
-            <div class="contact-card__grid">
-              <label class="field">
-                <span>Name</span>
-                <input type="text" name="name" autocomplete="name" placeholder="Your name" />
-              </label>
-
-              <label class="field">
-                <span>Phone</span>
-                <input type="tel" name="phone" autocomplete="tel" placeholder="Phone number" />
-              </label>
-
-              <label class="field">
-                <span>Event Date</span>
-                <input type="date" name="event-date" />
-              </label>
-
-              <label class="field">
-                <span>Guest Count</span>
-                <input type="number" name="guest-count" min="1" placeholder="Approximate guests" />
-              </label>
-
-              <label class="field field--full">
-                <span>Occasion</span>
-                <select name="occasion">
-                  <option value="">Select occasion</option>
-                  <option value="wedding">Wedding</option>
-                  <option value="reception">Reception</option>
-                  <option value="engagement">Engagement</option>
-                  <option value="family-function">Family Function</option>
-                  <option value="other">Other</option>
-                </select>
-              </label>
-
-              <label class="field field--full">
-                <span>Event Notes</span>
-                <textarea
-                  name="notes"
-                  rows="5"
-                  placeholder="Tell us about your event, timing, or room needs"
-                ></textarea>
-              </label>
-            </div>
-
-            <button class="solid-button" type="button">Send Enquiry</button>
-          </form>
+          <div class="contact-map" data-reveal>
+            <a
+              class="map-link"
+              href="https://maps.app.goo.gl/vZWrqc6f6b9hvNj88"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-brand-href="mapsHref"
+            >
+              <span class="map-link__icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48">
+                  <path d="M24 42s10-10.5 10-21a10 10 0 1 0-20 0c0 10.5 10 21 10 21Z" />
+                  <path d="M24 24a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                </svg>
+              </span>
+              <span class="map-link__text">
+                <strong>View on Google Maps →</strong>
+                <small data-brand-text="mapLabel">Diamond Arcade, Allapra P.O, Perumbavoor</small>
+              </span>
+            </a>
+          </div>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <div class="site-footer__inner">
-        <div>
-          <p class="site-footer__eyebrow">Diamond Banquet Hall</p>
-          <p class="site-footer__title">Kochi</p>
-        </div>
-
-        <div class="site-footer__links">
-          <a href="#about">About</a>
-          <a href="#spaces">Spaces</a>
-          <a href="#enquire">Enquire</a>
-        </div>
-      </div>
+      <a class="site-footer__logo" href="#top">Diamond</a>
+      <nav class="site-footer__nav" aria-label="Footer navigation">
+        <a href="#hall">Hall</a>
+        <a href="#rooms">Rooms</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <p>© 2025 Diamond Banquet Hall, Allapra. All rights reserved.</p>
+      <p>Designed with care for Diamond Arcade, Perumbavoor</p>
     </footer>
 
-    <script>
-      const siteHeader = document.querySelector(".site-header");
-      const navToggle = document.querySelector(".nav-toggle");
-      const mobileMenu = document.getElementById("mobile-menu");
-      const revealTargets = document.querySelectorAll("[data-reveal]");
-      const mobileBreakpoint = window.matchMedia("(max-width: 56.25rem)");
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    <a
+      class="whatsapp-float"
+      href="https://wa.me/919947681202"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Chat with us on WhatsApp"
+      data-brand-href="whatsappHref"
+    >
+      <span class="whatsapp-float__tooltip">Chat with us</span>
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path
+          d="M16 3.2A12.66 12.66 0 0 0 5.1 22.3L3 29l6.9-2a12.8 12.8 0 1 0 6.1-23.8Zm0 23.1a10.5 10.5 0 0 1-5.3-1.4l-.4-.2-4.1 1.2 1.3-4-.3-.4A10.5 10.5 0 1 1 16 26.3Zm5.8-7.9c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2s-.8 1-1 1.1c-.2.2-.4.2-.8 0s-1.5-.6-2.8-1.8c-1-1-1.8-2.1-2-2.5s0-.5.1-.7c.1-.1.3-.4.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.6s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.4c.2.2 2.4 3.7 5.9 5.1.8.4 1.5.6 2 .7.8.3 1.6.2 2.1.1.7-.1 1.8-.8 2-1.5.3-.7.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4Z"
+          fill="currentColor"
+        />
+      </svg>
+    </a>
 
-      const syncHeaderState = () => {
-        siteHeader.classList.toggle("site-header--scrolled", window.scrollY > 36);
-      };
+    <div class="calendar-modal" id="calendar-modal" hidden>
+      <div class="calendar-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
+        <button class="calendar-modal__close" id="calendar-close" type="button" aria-label="Close availability modal">
+          <span></span>
+          <span></span>
+        </button>
 
-      const closeMobileMenu = () => {
-        if (!navToggle || !mobileMenu) {
-          return;
-        }
+        <div class="calendar-modal__header">
+          <p class="calendar-modal__eyebrow">Check Availability</p>
+          <h2 id="calendar-title">Check Availability</h2>
+          <div class="calendar-modal__controls">
+            <button id="calendar-prev" type="button" aria-label="View previous month">‹</button>
+            <p id="calendar-month-label"></p>
+            <button id="calendar-next" type="button" aria-label="View next month">›</button>
+          </div>
+        </div>
 
-        mobileMenu.hidden = true;
-        navToggle.setAttribute("aria-expanded", "false");
-        navToggle.setAttribute("aria-label", "Open navigation menu");
-        siteHeader.classList.remove("site-header--menu-open");
-        document.body.classList.remove("nav-open");
-      };
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Sun</span>
+          <span>Mon</span>
+          <span>Tue</span>
+          <span>Wed</span>
+          <span>Thu</span>
+          <span>Fri</span>
+          <span>Sat</span>
+        </div>
+        <div class="calendar-days" id="calendar-days"></div>
 
-      const toggleMobileMenu = () => {
-        if (!navToggle || !mobileMenu || !mobileBreakpoint.matches) {
-          return;
-        }
+        <div class="calendar-modal__footer">
+          <div class="calendar-legend">
+            <span><i class="legend-box legend-box--booked"></i>Booked</span>
+            <span><i class="legend-box legend-box--available"></i>Available</span>
+          </div>
+          <p class="calendar-modal__selection" id="calendar-selected-date" aria-live="polite">
+            Select an available future date to prepare your enquiry.
+          </p>
+          <p>To book this date, contact us:</p>
+          <div class="calendar-modal__actions">
+            <a
+              class="button button--ghost-dark"
+              id="calendar-whatsapp-link"
+              href="https://wa.me/919947681202"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-brand-href="whatsappHref"
+            >
+              WhatsApp
+            </a>
+            <a
+              class="button button--ghost-dark"
+              id="calendar-call-link"
+              href="tel:+919947681202"
+              data-brand-href="phoneHref"
+            >
+              Call Now
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        const isOpen = navToggle.getAttribute("aria-expanded") === "true";
-        navToggle.setAttribute("aria-expanded", String(!isOpen));
-        navToggle.setAttribute(
-          "aria-label",
-          isOpen ? "Open navigation menu" : "Close navigation menu"
-        );
-        mobileMenu.hidden = isOpen;
-        siteHeader.classList.toggle("site-header--menu-open", !isOpen);
-        document.body.classList.toggle("nav-open", !isOpen);
-      };
+    <div class="lightbox" id="lightbox" hidden>
+      <button class="lightbox__arrow lightbox__arrow--left" id="lightbox-prev" type="button" aria-label="Previous image">
+        ‹
+      </button>
+      <div class="lightbox__stage" role="dialog" aria-modal="true" aria-label="Gallery lightbox">
+        <button class="lightbox__close" id="lightbox-close" type="button" aria-label="Close gallery lightbox">
+          <span></span>
+          <span></span>
+        </button>
+        <img id="lightbox-image" src="" alt="" />
+        <p id="lightbox-caption"></p>
+      </div>
+      <button class="lightbox__arrow lightbox__arrow--right" id="lightbox-next" type="button" aria-label="Next image">
+        ›
+      </button>
+    </div>
 
-      syncHeaderState();
-      window.addEventListener("scroll", syncHeaderState, { passive: true });
-
-      if (navToggle && mobileMenu) {
-        navToggle.addEventListener("click", toggleMobileMenu);
-
-        mobileMenu.querySelectorAll("a").forEach((link) => {
-          link.addEventListener("click", closeMobileMenu);
-        });
-
-        document.addEventListener("keydown", (event) => {
-          if (event.key === "Escape") {
-            closeMobileMenu();
-          }
-        });
-
-        window.addEventListener("resize", () => {
-          if (!mobileBreakpoint.matches) {
-            closeMobileMenu();
-          }
-        });
-      }
-
-      revealTargets.forEach((target, index) => {
-        target.style.setProperty("--reveal-delay", `${(index % 3) * 90}ms`);
-      });
-
-      if (reducedMotion.matches || !("IntersectionObserver" in window)) {
-        revealTargets.forEach((target) => target.classList.add("is-visible"));
-      } else {
-        const revealObserver = new IntersectionObserver(
-          (entries, observer) => {
-            entries.forEach((entry) => {
-              if (!entry.isIntersecting) {
-                return;
-              }
-
-              entry.target.classList.add("is-visible");
-              observer.unobserve(entry.target);
-            });
-          },
-          {
-            threshold: 0.2,
-            rootMargin: "0px 0px -10% 0px",
-          }
-        );
-
-        revealTargets.forEach((target) => revealObserver.observe(target));
-      }
-    </script>
+    <script src="js/bookings.js"></script>
+    <script src="js/reviews.js"></script>
+    <script src="js/main.js"></script>
   </body>
 </html>
