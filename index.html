@@ -36,7 +36,7 @@
     <meta property="og:type" content="website" />
     <link rel="canonical" href="https://diamondbanquethall.com" />
     <link rel="icon" href="images/favicon.ico" />
-    <script type="application/ld+json">
+    <script id="venue-structured-data" type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "EventVenue",
@@ -113,9 +113,7 @@
           <h1 data-brand-text="venueName">Diamond Banquet Hall</h1>
           <p class="hero__tagline">Where every celebration becomes a memory</p>
           <div class="hero__actions">
-            <button class="button button--ghost" type="button" data-open-calendar>
-              Check Availability
-            </button>
+            <a class="button button--ghost" href="booking.html">Check Availability</a>
             <a
               class="button button--ghost"
               href="https://wa.me/919947681202"
@@ -425,9 +423,7 @@
               <li>Professional lighting &amp; sound</li>
               <li>Outdoor decor permitted</li>
             </ul>
-            <button class="button button--ghost-light" type="button" data-open-calendar>
-              Check Availability
-            </button>
+            <a class="button button--ghost-light" href="booking.html">Check Availability</a>
           </article>
 
           <article class="pricing-card" data-reveal>
@@ -444,7 +440,7 @@
             <p class="pricing-card__amount" data-brand-html="roomPriceAmount">₹1,500</p>
             <p class="pricing-card__sub">per room, per night</p>
             <ul class="pricing-list">
-              <li>4 AC rooms available</li>
+              <li data-brand-html="roomAvailabilityLine">4 AC rooms available</li>
               <li>En-suite bathroom</li>
               <li>Sleeps 2 per room</li>
               <li>Available night of event</li>
@@ -500,7 +496,7 @@
 
           <article class="faq-item">
             <button class="faq-item__button" type="button" aria-expanded="false">
-              What is included in the ₹30,000 package?
+              What is included in the <span data-brand-html="hallPriceAmount">₹30,000</span> package?
             </button>
             <div class="faq-item__panel">
               <p>
@@ -528,7 +524,7 @@
             </button>
             <div class="faq-item__panel">
               <p>
-                No. Rooms are optional and can be booked independently at ₹1,500 per
+                No. Rooms are optional and can be booked independently at <span data-brand-html="roomPriceAmount">₹1,500</span> per
                 room per night.
               </p>
             </div>
@@ -680,7 +676,7 @@
         <a href="#pricing">Pricing</a>
         <a href="#contact">Contact</a>
       </nav>
-      <p>© 2025 Diamond Banquet Hall, Allapra. All rights reserved.</p>
+      <p>© <span id="site-footer-year">2025</span> Diamond Banquet Hall, Allapra. All rights reserved.</p>
       <p>Designed with care for Diamond Arcade, Perumbavoor</p>
       <p class="site-footer__staff-link">
         <a class="site-footer__stealth-link" href="login.html">Admin Login</a>
@@ -817,6 +813,7 @@
       </div>
     </div>
 
+    <script src="./js/runtime-config.js"></script>
     <script type="module" src="./js/main.js"></script>
   </body>
 </html>

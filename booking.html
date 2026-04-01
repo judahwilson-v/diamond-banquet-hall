@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diamond Banquet Hall Booking | Allapra, Perumbavoor</title>
+    <meta
+      name="description"
+      content="Check Diamond Banquet Hall availability, choose a 4-hour slot, and send your booking request online."
+    />
+    <meta property="og:title" content="Diamond Banquet Hall Booking" />
+    <meta
+      property="og:description"
+      content="Check Diamond Banquet Hall availability, choose a 4-hour slot, and send your booking request online."
+    />
+    <meta property="og:image" content="images/hero.jpg" />
+    <meta property="og:url" content="https://diamondbanquethall.com/booking.html" />
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://diamondbanquethall.com/booking.html" />
+    <link rel="icon" href="images/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&amp;family=Playfair+Display:wght@300;400;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/booking.css" />
+  </head>
+  <body class="booking-body">
+    <header class="site-header site-header--booking is-scrolled">
+      <nav class="site-nav booking-nav" aria-label="Booking page navigation">
+        <a class="site-logo" href="index.html">Diamond</a>
+        <div class="booking-nav__links">
+          <a href="index.html#pricing">Pricing</a>
+          <a href="index.html#contact">Contact</a>
+          <a class="button button--ghost-dark booking-nav__home" href="index.html">Main Site</a>
+        </div>
+      </nav>
+    </header>
+
+    <div class="booking-loading" id="booking-loading" aria-live="polite" aria-hidden="false">
+      <div class="booking-loading__inner">
+        <p class="booking-loading__eyebrow">Diamond Banquet Hall Booking</p>
+        <span class="booking-loading__line"></span>
+      </div>
+    </div>
+
+    <main class="booking-main" id="top">
+      <div class="booking-shell">
+        <section class="booking-hero-card" aria-labelledby="booking-page-title">
+          <p class="section-heading__eyebrow" data-brand-text="locationLabel">Allapra, Perumbavoor</p>
+          <h1 id="booking-page-title">Plan Your Hall Booking</h1>
+          <p class="booking-hero-card__copy">
+            Pick an event date, review the available 4-hour slots, and send your request directly to the Diamond team.
+          </p>
+        </section>
+
+        <section class="booking-panel" id="booking-calendar-section" aria-labelledby="booking-calendar-title">
+          <div class="booking-panel__header">
+            <p class="section-heading__eyebrow">Section 1</p>
+            <h2 id="booking-calendar-title">Calendar</h2>
+          </div>
+
+          <div class="booking-calendar">
+            <div class="booking-calendar__controls">
+              <button id="booking-calendar-prev" type="button" aria-label="View previous month">‹</button>
+              <p id="booking-calendar-month-label">Month Year</p>
+              <button id="booking-calendar-next" type="button" aria-label="View next month">›</button>
+            </div>
+
+            <div class="booking-calendar__weekdays" aria-hidden="true">
+              <span>Sun</span>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+            </div>
+
+            <div class="booking-calendar__grid" id="booking-calendar-days"></div>
+          </div>
+
+          <div class="booking-calendar__legend" aria-label="Calendar availability legend">
+            <span><i class="booking-calendar__legend-box booking-calendar__legend-box--available"></i>Available</span>
+            <span><i class="booking-calendar__legend-box booking-calendar__legend-box--partial"></i>Partially booked</span>
+            <span><i class="booking-calendar__legend-box booking-calendar__legend-box--booked"></i>Fully booked</span>
+          </div>
+
+          <p class="booking-panel__note" id="booking-calendar-note" aria-live="polite">
+            Calendar availability will appear here.
+          </p>
+          <button class="booking-inline-action" id="booking-calendar-retry" type="button" hidden>
+            Retry Live Availability
+          </button>
+        </section>
+
+        <section class="booking-panel" id="booking-slots-section" aria-labelledby="booking-slots-title">
+          <div class="booking-panel__header">
+            <p class="section-heading__eyebrow">Section 2</p>
+            <h2 id="booking-slots-title">Time Slots</h2>
+          </div>
+
+          <p class="booking-slot-summary" id="booking-slot-summary" aria-live="polite">
+            Selected: --:-- &ndash; --:-- (0 hrs)
+          </p>
+          <p class="booking-slot-note" id="booking-slot-note" aria-live="polite">
+            Choose an available date to unlock the 06:00 to 12:00 slot window.
+          </p>
+          <div class="booking-slots-grid" id="booking-slot-grid"></div>
+        </section>
+
+        <section class="booking-panel" id="booking-contact-section" aria-labelledby="booking-contact-title">
+          <div class="booking-panel__header">
+            <p class="section-heading__eyebrow">Section 3</p>
+            <h2 id="booking-contact-title">Contact Buttons</h2>
+          </div>
+
+          <div class="booking-contact-actions">
+            <a
+              class="booking-contact-button booking-contact-button--call"
+              href="tel:+919947681202"
+              data-brand-href="phoneHref"
+            >
+              Call
+            </a>
+            <a
+              class="booking-contact-button booking-contact-button--whatsapp"
+              href="https://wa.me/919947681202"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-brand-href="whatsappHref"
+              data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about hall availability and pricing."
+            >
+              WhatsApp
+            </a>
+          </div>
+        </section>
+
+        <section class="booking-panel" id="booking-form-section" aria-labelledby="booking-form-title">
+          <div class="booking-panel__header">
+            <p class="section-heading__eyebrow">Section 4</p>
+            <h2 id="booking-form-title">Booking Form</h2>
+          </div>
+
+          <form class="booking-form" id="booking-form" novalidate>
+            <div class="booking-form__grid">
+              <label class="booking-field" for="booking-name">
+                <span>Name</span>
+                <input
+                  id="booking-name"
+                  name="name"
+                  type="text"
+                  autocomplete="name"
+                  required
+                  aria-describedby="booking-name-error"
+                />
+                <small class="booking-field__error" id="booking-name-error" aria-live="polite"></small>
+              </label>
+
+              <label class="booking-field" for="booking-phone">
+                <span>Phone</span>
+                <input
+                  id="booking-phone"
+                  name="phone"
+                  type="tel"
+                  inputmode="tel"
+                  autocomplete="tel"
+                  required
+                  aria-describedby="booking-phone-error"
+                />
+                <small class="booking-field__error" id="booking-phone-error" aria-live="polite"></small>
+              </label>
+
+              <label class="booking-field" for="booking-email">
+                <span>Email</span>
+                <input
+                  id="booking-email"
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  aria-describedby="booking-email-error"
+                />
+                <small class="booking-field__error" id="booking-email-error" aria-live="polite"></small>
+              </label>
+
+              <label class="booking-field" for="booking-organisation">
+                <span>Organisation</span>
+                <input
+                  id="booking-organisation"
+                  name="organisation"
+                  type="text"
+                  autocomplete="organization"
+                  aria-describedby="booking-organisation-error"
+                />
+                <small class="booking-field__error" id="booking-organisation-error" aria-live="polite"></small>
+              </label>
+
+              <label class="booking-field" for="booking-event-type">
+                <span>Event Type</span>
+                <select id="booking-event-type" name="eventType" aria-describedby="booking-event-type-error">
+                  <option value="">Select event type</option>
+                  <option value="Wedding">Wedding</option>
+                  <option value="Reception">Reception</option>
+                  <option value="Engagement">Engagement</option>
+                  <option value="Birthday">Birthday</option>
+                  <option value="Corporate Event">Corporate Event</option>
+                  <option value="Other">Other</option>
+                </select>
+                <small class="booking-field__error" id="booking-event-type-error" aria-live="polite"></small>
+              </label>
+
+              <label class="booking-field" for="booking-attendees">
+                <span>Attendees</span>
+                <input
+                  id="booking-attendees"
+                  name="attendees"
+                  type="number"
+                  min="1"
+                  inputmode="numeric"
+                  required
+                  aria-describedby="booking-attendees-error"
+                />
+                <small class="booking-field__error" id="booking-attendees-error" aria-live="polite"></small>
+              </label>
+            </div>
+
+            <label class="booking-field booking-field--full" for="booking-notes">
+              <span>Notes</span>
+              <textarea
+                id="booking-notes"
+                name="notes"
+                rows="5"
+                aria-describedby="booking-notes-error"
+              ></textarea>
+              <small class="booking-field__error" id="booking-notes-error" aria-live="polite"></small>
+            </label>
+
+            <p class="booking-form__status" id="booking-submit-status" aria-live="polite"></p>
+
+            <div class="booking-form__actions">
+              <button class="button button--solid" id="booking-submit-button" type="submit">
+                <span class="booking-submit-button__spinner" aria-hidden="true"></span>
+                <span class="booking-submit-button__label">Send Booking Request</span>
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <div class="booking-success" id="booking-success" hidden aria-hidden="true">
+      <div class="booking-success__dialog" role="dialog" aria-modal="true" aria-labelledby="booking-success-title">
+        <p class="section-heading__eyebrow">Booking Request</p>
+        <h2 id="booking-success-title">Booking request sent.</h2>
+        <p>Confirmation within 24 hours.</p>
+        <button class="button button--solid" id="booking-reset-button" type="button">New Booking</button>
+      </div>
+    </div>
+
+    <footer class="site-footer site-footer--booking">
+      <a class="site-footer__logo" href="index.html">Diamond</a>
+      <nav class="site-footer__nav" aria-label="Booking footer navigation">
+        <a href="index.html#hall">Hall</a>
+        <a href="index.html#pricing">Pricing</a>
+        <a href="index.html#contact">Contact</a>
+      </nav>
+      <p>© <span id="booking-footer-year">2025</span> Diamond Banquet Hall, Allapra. All rights reserved.</p>
+    </footer>
+
+    <script src="./js/runtime-config.js"></script>
+    <script type="module" src="./js/booking.js"></script>
+  </body>
+</html>

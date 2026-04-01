@@ -52,7 +52,7 @@
           <article class="admin-stat">
             <p class="admin-stat__label">Total Confirmed Bookings</p>
             <p class="admin-stat__value" id="stat-bookings-count">0</p>
-            <p class="admin-stat__note">Live count from the bookings table.</p>
+            <p class="admin-stat__note" id="stat-bookings-note">Live count from the bookings table.</p>
           </article>
           <article class="admin-stat">
             <p class="admin-stat__label">Pending Inquiries</p>
@@ -190,6 +190,9 @@
                   </div>
                   <p class="admin-note admin-note--inline">
                     Click any current-month date to toggle it between booked and available.
+                  </p>
+                  <p class="admin-note admin-note--inline" id="booking-request-summary">
+                    Pending slot requests for this month will appear here.
                   </p>
                   <div class="mini-calendar__weekdays" aria-hidden="true">
                     <span>Sun</span>
@@ -431,6 +434,7 @@
 
     <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
+    <script src="./js/runtime-config.js"></script>
     <script type="module" src="./js/admin.js"></script>
   </body>
 </html>

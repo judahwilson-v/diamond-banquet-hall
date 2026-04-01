@@ -1,4 +1,5 @@
 import { describeSupabaseError, getCurrentSession, signInAdmin } from "./site-data.js";
+import { SUPABASE_CONFIG_ERROR } from "./supabase-config.js";
 
 const userMap = {
   judah: "judah@diamond.com",
@@ -102,6 +103,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     usernameInput?.classList.remove("is-error");
     passwordInput?.classList.remove("is-error");
   };
+
+  if (SUPABASE_CONFIG_ERROR) {
+    const message = describeSupabaseError(
+      SUPABASE_CONFIG_ERROR,
+      "Admin sign-in is temporarily unavailable."
+    );
+
+    setStatus(message, "error");
+    pushToast(message, "error");
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Config Required";
+    }
+
+    return;
+  }
 
   try {
     const session = await getCurrentSession();

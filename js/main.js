@@ -15,7 +15,8 @@ const FALLBACK_SITE_SETTINGS = {
   hallPrice: 30000,
   roomPrice: 1500,
   roomCount: 4,
-  inquiryHours: "Open for inquiries 9 AM – 9 PM, all days"
+  inquiryHours: "Open for inquiries 9 AM – 9 PM, all days",
+  hallStatusOpen: true
 };
 
 const fallbackWhatsAppLink = (baseHref, message) => {
@@ -96,6 +97,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const state = {
     siteSettings: { ...DEFAULT_SITE_SETTINGS },
     bookedDateSet: new Set(),
+    bookingAvailabilityState: "loading",
     reviews: [],
     galleryItems: [],
     currentMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -207,6 +209,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     return element;
   };
 
+  const formatCurrency = (value) => `₹${Number(value).toLocaleString("en-IN")}`;
+
+  const buildMarketingDescription = () =>
+    `Luxury AC banquet hall in ${state.siteSettings.locationLabel}. 250 guests capacity. Hall ${formatCurrency(
+      state.siteSettings.hallPrice
+    )}/4hrs. ${state.siteSettings.roomCount} AC rooms at ${formatCurrency(
+      state.siteSettings.roomPrice
+    )}/night. Book via WhatsApp or call.`;
+
   const extractGalleryItem = (item, index) => {
     const image = item.querySelector("img");
 
@@ -225,6 +236,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const applyBrandSettings = () => {
     document.title = `${state.siteSettings.venueName} | ${state.siteSettings.locationLabel}`;
+    document.documentElement.lang = "en";
+
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute("content", buildMarketingDescription());
+    document
+      .querySelector('meta[name="keywords"]')
+      ?.setAttribute(
+        "content",
+        `banquet hall ${state.siteSettings.locationLabel.toLowerCase()}, wedding hall ${state.siteSettings.locationLabel.toLowerCase()}, ac hall kochi, ${state.siteSettings.venueName.toLowerCase()}`
+      );
+    document
+      .querySelector('meta[property="og:title"]')
+      ?.setAttribute("content", `${state.siteSettings.venueName} | ${state.siteSettings.locationLabel}`);
+    document
+      .querySelector('meta[property="og:description"]')
+      ?.setAttribute("content", buildMarketingDescription());
 
     document.querySelectorAll("[data-brand-text]").forEach((element) => {
       const key = element.dataset.brandText;
@@ -253,8 +281,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         element.textContent = `${state.siteSettings.roomCount} air-conditioned rooms for your guests`;
       }
 
+      if (key === "roomAvailabilityLine") {
+        element.textContent = `${state.siteSettings.roomCount} AC rooms available`;
+      }
+
       if (key === "hallFeatureChip") {
-        element.textContent = `250 Guests · Full AC · ₹${Number(state.siteSettings.hallPrice).toLocaleString("en-IN")} / 4 hrs`;
+        element.textContent = `250 Guests · Full AC · ${formatCurrency(state.siteSettings.hallPrice)} / 4 hrs`;
       }
     });
 
@@ -277,6 +309,39 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (calendarCallLink) {
       calendarCallLink.href = state.siteSettings.phoneHref;
+    }
+
+    const structuredDataNode = document.getElementById("venue-structured-data");
+
+    if (structuredDataNode) {
+      structuredDataNode.textContent = JSON.stringify(
+        {
+          "@context": "https://schema.org",
+          "@type": "EventVenue",
+          name: state.siteSettings.venueName,
+          url: "https://diamondbanquethall.com",
+          image: "https://diamondbanquethall.com/images/hero.jpg",
+          telephone: state.siteSettings.phoneDisplay,
+          priceRange: "₹₹",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: state.siteSettings.addressLine1,
+            addressLocality: state.siteSettings.locationLabel,
+            addressRegion: "Kerala",
+            postalCode: "683556",
+            addressCountry: "IN"
+          },
+          sameAs: [state.siteSettings.instagramHref, state.siteSettings.mapsHref]
+        },
+        null,
+        2
+      );
+    }
+
+    const footerYear = document.getElementById("site-footer-year");
+
+    if (footerYear) {
+      footerYear.textContent = String(new Date().getFullYear());
     }
   };
 
@@ -364,16 +429,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   const updateCalendarSelection = () => {
-    const message = state.selectedDate
-      ? `Hello Diamond Banquet Hall, I would like to enquire about ${formatLongDate(
-          state.selectedDate
-        )} for the banquet hall.`
-      : "Hello Diamond Banquet Hall, I would like to enquire about hall availability and pricing.";
+    const hallBookingsPaused = state.siteSettings.hallStatusOpen === false;
+    const availabilityReady = state.bookingAvailabilityState === "ready";
+    const availabilityUnavailable =
+      state.bookingAvailabilityState === "error" || state.bookingAvailabilityState === "stale";
+    const message = hallBookingsPaused
+      ? "Hello Diamond Banquet Hall, I would like to ask when hall bookings will reopen."
+      : state.selectedDate
+        ? `Hello Diamond Banquet Hall, I would like to enquire about ${formatLongDate(
+            state.selectedDate
+          )} for the banquet hall.`
+        : "Hello Diamond Banquet Hall, I would like to enquire about hall availability and pricing.";
 
     if (calendarSelectedDate) {
-      calendarSelectedDate.textContent = state.selectedDate
-        ? `Selected date: ${formatLongDate(state.selectedDate)}`
-        : "Select an available future date to prepare your enquiry.";
+      if (hallBookingsPaused) {
+        calendarSelectedDate.textContent =
+          "Hall bookings are temporarily paused. Please call or WhatsApp us for updates.";
+      } else if (!availabilityReady) {
+        calendarSelectedDate.textContent =
+          availabilityUnavailable
+            ? "Live availability is temporarily unavailable. Please call or WhatsApp us to confirm your date."
+            : "Loading live availability...";
+      } else {
+        calendarSelectedDate.textContent = state.selectedDate
+          ? `Selected date: ${formatLongDate(state.selectedDate)}`
+          : "Select an available future date to prepare your enquiry.";
+      }
     }
 
     if (calendarWhatsAppLink) {
@@ -395,6 +476,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const leadingDays = firstDay.getDay();
     const totalCells = Math.ceil((leadingDays + lastDay.getDate()) / 7) * 7;
     const dayButtons = [];
+    const availabilityReady = state.bookingAvailabilityState === "ready";
+    const hallBookingsPaused = state.siteSettings.hallStatusOpen === false;
 
     calendarLabel.textContent = state.currentMonth.toLocaleDateString("en-IN", {
       month: "long",
@@ -408,18 +491,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       const isToday = cellDate.getTime() === todayFloor.getTime();
       const isPast = cellDate < todayFloor;
       const isBooked = state.bookedDateSet.has(cellKey);
-      const isSelectable = isCurrentMonth && !isPast && !isBooked;
+      const isSelectable =
+        availabilityReady && !hallBookingsPaused && isCurrentMonth && !isPast && !isBooked;
       const button = createElement("button", "calendar-day");
+      const availabilityLabel = isBooked
+        ? "Booked"
+        : hallBookingsPaused && isCurrentMonth && !isPast
+          ? "Unavailable"
+          : !availabilityReady && isCurrentMonth && !isPast
+            ? "Availability unavailable"
+            : isSelectable
+              ? "Available"
+              : "Unavailable";
 
       button.type = "button";
       button.dataset.date = cellKey;
       button.textContent = String(cellDate.getDate());
-      button.setAttribute(
-        "aria-label",
-        `${isBooked ? "Booked" : isSelectable ? "Available" : "Unavailable"} ${formatLongDate(
-          cellKey
-        )}`
-      );
+      button.setAttribute("aria-label", `${availabilityLabel} ${formatLongDate(cellKey)}`);
 
       if (!isCurrentMonth) {
         button.classList.add("is-outside");
@@ -439,6 +527,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         button.title = "Booked";
       } else if (!isSelectable) {
         button.disabled = true;
+        if (hallBookingsPaused && isCurrentMonth && !isPast) {
+          button.title = "Bookings are temporarily paused";
+        } else if (!availabilityReady && isCurrentMonth && !isPast) {
+          button.title = "Live availability is temporarily unavailable";
+        }
       } else {
         button.classList.add("is-available");
         button.addEventListener("click", () => {
@@ -767,7 +860,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const results = await Promise.allSettled([
         fetchSiteSettings(),
         fetchBookedDates(),
-        fetchReviews()
+        fetchReviews({ visibleOnly: true })
       ]);
 
       const [settingsResult, bookingsResult, reviewsResult] = results;
@@ -775,16 +868,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (settingsResult.status === "fulfilled") {
         state.siteSettings = settingsResult.value.settings;
         applyBrandSettings();
+
+        if (state.siteSettings.hallStatusOpen === false) {
+          state.selectedDate = null;
+        }
       }
 
       if (bookingsResult.status === "fulfilled") {
         state.bookedDateSet = new Set(bookingsResult.value);
+        state.bookingAvailabilityState = "ready";
 
         if (state.selectedDate && state.bookedDateSet.has(state.selectedDate)) {
           state.selectedDate = null;
         }
       } else {
-        state.bookedDateSet = new Set();
+        state.bookingAvailabilityState = state.bookedDateSet.size ? "stale" : "error";
+        state.selectedDate = null;
       }
 
       renderCalendar();
@@ -797,7 +896,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       state.lastDynamicRefreshAt = now;
     } catch (_error) {
-      state.bookedDateSet = new Set();
+      state.bookingAvailabilityState = state.bookedDateSet.size ? "stale" : "error";
+      state.selectedDate = null;
       renderCalendar();
       updateCalendarSelection();
     }

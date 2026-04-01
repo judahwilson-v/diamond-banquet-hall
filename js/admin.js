@@ -5,6 +5,7 @@ import {
   deleteReview,
   describeSupabaseError,
   fetchBookedDates,
+  fetchBookingRequests,
   fetchEnquiries,
   fetchReviews,
   fetchSiteSettings,
@@ -40,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const adminBannerStatus = document.getElementById("admin-banner-status");
   const toastStack = document.getElementById("toast-stack");
   const statBookingsCount = document.getElementById("stat-bookings-count");
+  const statBookingsNote = document.getElementById("stat-bookings-note");
   const statEnquiriesCount = document.getElementById("stat-enquiries-count");
   const hallStatusToggle = document.getElementById("hall-status-toggle");
   const hallStatusText = document.getElementById("hall-status-text");
@@ -56,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const adminCalendarDays = document.getElementById("admin-calendar-days");
   const adminCalendarPrev = document.getElementById("admin-calendar-prev");
   const adminCalendarNext = document.getElementById("admin-calendar-next");
+  const bookingRequestSummary = document.getElementById("booking-request-summary");
   const leadsStatus = document.getElementById("leads-status");
   const refreshLeads = document.getElementById("refresh-leads");
   const siteSettingsForm = document.getElementById("site-settings-form");
@@ -95,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
     email: "",
     currentMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     bookedDates: [],
+    pendingBookingRequestCountByDate: new Map(),
     selectedBookingDate: "",
     enquiries: [],
     reviews: [],
@@ -339,12 +343,70 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${year}-${month}-${day}`;
   };
 
+  const formatDateLabel = (dateKey, options = {}) =>
+    new Date(`${dateKey}T00:00:00`).toLocaleDateString("en-IN", options);
+
+  const buildPendingBookingRequestCountByDate = (bookingRequests) => {
+    const counts = new Map();
+
+    bookingRequests.forEach((request) => {
+      if (request.status !== "pending") {
+        return;
+      }
+
+      counts.set(request.eventDate, (counts.get(request.eventDate) ?? 0) + 1);
+    });
+
+    return counts;
+  };
+
   const renderBookingPreview = () => {
     if (!bookingPreview) {
       return;
     }
 
     bookingPreview.value = JSON.stringify(state.bookedDates, null, 2);
+  };
+
+  const renderBookingStatsNote = () => {
+    if (!statBookingsNote) {
+      return;
+    }
+
+    const pendingRequestCount = Array.from(state.pendingBookingRequestCountByDate.values()).reduce(
+      (total, count) => total + count,
+      0
+    );
+
+    if (!pendingRequestCount) {
+      statBookingsNote.textContent = "Live count from the bookings table.";
+      return;
+    }
+
+    statBookingsNote.textContent = `Live count from the bookings table. ${pendingRequestCount} pending slot request${pendingRequestCount === 1 ? "" : "s"} awaiting review.`;
+  };
+
+  const renderBookingRequestSummary = () => {
+    if (!bookingRequestSummary) {
+      return;
+    }
+
+    const monthPrefix = `${state.currentMonth.getFullYear()}-${String(state.currentMonth.getMonth() + 1).padStart(2, "0")}`;
+    const monthlyEntries = Array.from(state.pendingBookingRequestCountByDate.entries())
+      .filter(([dateKey]) => dateKey.startsWith(monthPrefix))
+      .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate));
+
+    if (!monthlyEntries.length) {
+      bookingRequestSummary.textContent = "No pending slot requests in this month.";
+      return;
+    }
+
+    bookingRequestSummary.textContent = `Pending slot requests this month: ${monthlyEntries
+      .map(
+        ([dateKey, count]) =>
+          `${formatDateLabel(dateKey, { day: "numeric", month: "short" })} (${count})`
+      )
+      .join(", ")}.`;
   };
 
   const renderMiniCalendar = () => {
@@ -368,7 +430,9 @@ document.addEventListener("DOMContentLoaded", () => {
     for (let index = 0; index < total; index += 1) {
       const cellDate = new Date(year, month, index - leading + 1);
       const cellKey = formatDateKey(cellDate);
-      const cell = createElement("button", "mini-calendar__day", String(cellDate.getDate()));
+      const cell = createElement("button", "mini-calendar__day");
+      const cellNumber = createElement("span", "mini-calendar__day-number", String(cellDate.getDate()));
+      const pendingCount = state.pendingBookingRequestCountByDate.get(cellKey) ?? 0;
 
       cell.type = "button";
 
@@ -385,14 +449,44 @@ document.addEventListener("DOMContentLoaded", () => {
         cell.classList.add("is-booked");
       }
 
+      if (cellDate.getMonth() === month && pendingCount > 0) {
+        const badge = createElement(
+          "span",
+          "mini-calendar__request-badge",
+          `${pendingCount} pending`
+        );
+
+        cell.classList.add("has-pending-requests");
+        cell.append(cellNumber, badge);
+      } else {
+        cell.append(cellNumber);
+      }
+
       if (state.selectedBookingDate === cellKey) {
         cell.classList.add("is-selected");
+      }
+
+      if (cellDate.getMonth() === month) {
+        const parts = [formatDateLabel(cellKey, { weekday: "long", day: "numeric", month: "long", year: "numeric" })];
+
+        if (activeBookings.has(cellKey)) {
+          parts.push("fully booked");
+        }
+
+        if (pendingCount > 0) {
+          parts.push(
+            `${pendingCount} pending slot request${pendingCount === 1 ? "" : "s"}`
+          );
+        }
+
+        cell.setAttribute("aria-label", parts.join(", "));
       }
 
       nodes.push(cell);
     }
 
     adminCalendarDays.replaceChildren(...nodes);
+    renderBookingRequestSummary();
   };
 
   const populateSettingsForm = () => {
@@ -581,7 +675,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const loadBookings = async () => {
     try {
-      state.bookedDates = await fetchBookedDates();
+      const [bookedDatesResult, bookingRequestsResult] = await Promise.allSettled([
+        fetchBookedDates(),
+        fetchBookingRequests()
+      ]);
+
+      if (bookedDatesResult.status !== "fulfilled") {
+        throw bookedDatesResult.reason;
+      }
+
+      state.bookedDates = bookedDatesResult.value;
+      state.pendingBookingRequestCountByDate =
+        bookingRequestsResult.status === "fulfilled"
+          ? buildPendingBookingRequestCountByDate(bookingRequestsResult.value)
+          : new Map();
+
+      if (bookingRequestsResult.status !== "fulfilled") {
+        console.warn("[diamond-admin] Unable to load booking request badges.", bookingRequestsResult.reason);
+      }
 
       if (state.selectedBookingDate && bookingDateInput) {
         bookingDateInput.value = state.selectedBookingDate;
@@ -589,6 +700,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       renderBookingPreview();
       renderMiniCalendar();
+      renderBookingStatsNote();
       setStatus(bookingStatus, "");
     } catch (error) {
       reportError(error, "Unable to load bookings.", bookingStatus);
@@ -769,6 +881,9 @@ document.addEventListener("DOMContentLoaded", () => {
         onBookingsChange: () => {
           void loadBookings();
           void loadAdminStats();
+        },
+        onBookingRequestsChange: () => {
+          void loadBookings();
         },
         onSettingsChange: () => {
           if (state.role === "judah") {

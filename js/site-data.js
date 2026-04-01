@@ -19,7 +19,8 @@ export const DEFAULT_SITE_SETTINGS = {
   hallPrice: 30000,
   roomPrice: 1500,
   roomCount: 4,
-  inquiryHours: "Open for inquiries 9 AM – 9 PM, all days"
+  inquiryHours: "Open for inquiries 9 AM – 9 PM, all days",
+  hallStatusOpen: true
 };
 
 const GALLERY_BUCKET = "venue-images";
@@ -35,6 +36,36 @@ const galleryAltTextByName = {
 
 const bookedDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 const imageFilePattern = /\.(avif|gif|jpe?g|png|webp)$/i;
+const bookingTimePattern = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
+const bookingRequestStatuses = ["pending", "booked", "cancelled"];
+
+export const BOOKING_SLOT_START_HOUR = 6;
+export const BOOKING_SLOT_END_HOUR = 12;
+export const BOOKING_MINIMUM_HOURS = 4;
+export const BOOKING_SLOT_DEFINITIONS = Array.from(
+  { length: BOOKING_SLOT_END_HOUR - BOOKING_SLOT_START_HOUR },
+  (_, index) => {
+    const startHour = BOOKING_SLOT_START_HOUR + index;
+    const endHour = startHour + 1;
+    const start = `${String(startHour).padStart(2, "0")}:00`;
+    const end = `${String(endHour).padStart(2, "0")}:00`;
+
+    return {
+      index,
+      start,
+      end,
+      label: `${start} - ${end}`
+    };
+  }
+);
+
+const EMAILJS_BOOKING_ADMIN_CONFIG = {
+  endpoint: "https://api.emailjs.com/api/v1.0/email/send",
+  serviceId: "service_w5z2sz8",
+  templateId: "template_a10369t",
+  publicKey: "Y107dCKAMhsKLkklw",
+  adminEmail: "judahvijai@gmail.com"
+};
 
 const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 
@@ -121,6 +152,68 @@ const normalizeDateList = (dates) =>
     .filter((value) => typeof value === "string" && bookedDatePattern.test(value))
     .filter((value, index, list) => list.indexOf(value) === index)
     .sort();
+
+const normalizeBookingTime = (value) => {
+  const normalized = String(value ?? "").trim();
+
+  if (!bookingTimePattern.test(normalized)) {
+    return "";
+  }
+
+  return normalized.slice(0, 5);
+};
+
+const normalizeBookingText = (value) =>
+  String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normalizeBookingEmail = (value) => normalizeBookingText(value).toLowerCase();
+
+const normalizeBookingNotes = (value) =>
+  String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+const formatBookingNotificationDate = (value) =>
+  new Date(`${String(value ?? "").trim()}T00:00:00`).toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
+const normalizeBookingPhone = (value) => {
+  const digits = toDigits(value);
+
+  if (digits.length === 10) {
+    return `91${digits}`;
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return digits;
+  }
+
+  return "";
+};
+
+const normalizeBookingRequestList = (items) =>
+  (Array.isArray(items) ? items : [])
+    .map((item, index) => ({
+      id: item.id ?? `booking-request-${index + 1}`,
+      eventDate: String(item.eventDate ?? item.event_date ?? "").trim().slice(0, 10),
+      startTime: normalizeBookingTime(item.startTime ?? item.start_time),
+      endTime: normalizeBookingTime(item.endTime ?? item.end_time),
+      status: String(item.status ?? "pending").trim().toLowerCase()
+    }))
+    .filter(
+      (item) =>
+        bookedDatePattern.test(item.eventDate) &&
+        item.startTime &&
+        item.endTime &&
+        bookingRequestStatuses.includes(item.status)
+    );
 
 const normalizeReviewList = (items) =>
   (Array.isArray(items) ? items : fallbackReviews)
@@ -212,6 +305,10 @@ export const deriveSiteSettingsSchema = (row = {}) => ({
 });
 
 export const describeSupabaseError = (error, fallbackMessage) => {
+  if (error?.code === "SUPABASE_CONFIG_MISSING") {
+    return error.message;
+  }
+
   if (error?.code === "PGRST205") {
     return "The required Supabase table is not set up yet. Run supabase/setup.sql.";
   }
@@ -248,6 +345,7 @@ export const normalizeSiteSettings = (raw = {}) => {
     raw.mapsHref ?? raw.google_maps_link ?? raw.googleMapsLink,
     DEFAULT_SITE_SETTINGS.mapsHref
   );
+  const hallStatusValue = raw.hallStatusOpen ?? raw.hall_status ?? raw.venue_status ?? raw.is_hall_open;
 
   return {
     venueName: String(raw.venueName ?? raw.hall_name ?? DEFAULT_SITE_SETTINGS.venueName).trim() || DEFAULT_SITE_SETTINGS.venueName,
@@ -266,7 +364,11 @@ export const normalizeSiteSettings = (raw = {}) => {
     hallPrice: normalizeInteger(raw.hallPrice ?? raw.hall_price ?? raw.hall_price_4hrs, DEFAULT_SITE_SETTINGS.hallPrice),
     roomPrice: normalizeInteger(raw.roomPrice ?? raw.room_price ?? raw.room_price_night, DEFAULT_SITE_SETTINGS.roomPrice),
     roomCount: normalizeInteger(raw.roomCount ?? raw.room_count, DEFAULT_SITE_SETTINGS.roomCount, 1),
-    inquiryHours: String(raw.inquiryHours ?? raw.inquiry_hours ?? DEFAULT_SITE_SETTINGS.inquiryHours).trim() || DEFAULT_SITE_SETTINGS.inquiryHours
+    inquiryHours: String(raw.inquiryHours ?? raw.inquiry_hours ?? DEFAULT_SITE_SETTINGS.inquiryHours).trim() || DEFAULT_SITE_SETTINGS.inquiryHours,
+    hallStatusOpen:
+      typeof hallStatusValue === "boolean"
+        ? hallStatusValue
+        : String(hallStatusValue ?? "open").trim().toLowerCase() !== "closed"
   };
 };
 
@@ -298,12 +400,22 @@ export const fetchSiteSettings = async () => {
   };
 };
 
-export const fetchBookedDates = async () => {
-  const { data, error } = await supabaseClient
+export const fetchBookedDates = async ({ startDate, endDate } = {}) => {
+  let query = supabaseClient
     .from("bookings")
     .select("booked_date")
     .eq("status", "booked")
     .order("booked_date", { ascending: true });
+
+  if (bookedDatePattern.test(String(startDate ?? "").trim())) {
+    query = query.gte("booked_date", String(startDate).trim());
+  }
+
+  if (bookedDatePattern.test(String(endDate ?? "").trim())) {
+    query = query.lte("booked_date", String(endDate).trim());
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw error;
@@ -312,7 +424,88 @@ export const fetchBookedDates = async () => {
   return normalizeDateList((data ?? []).map((item) => item.booked_date));
 };
 
-export const fetchReviews = async () => {
+export const fetchBookingRequests = async ({ startDate, endDate } = {}) => {
+  let query = supabaseClient
+    .from("booking_requests")
+    .select("id, event_date, start_time, end_time, status")
+    .in("status", ["pending", "booked"])
+    .order("event_date", { ascending: true })
+    .order("start_time", { ascending: true });
+
+  if (bookedDatePattern.test(String(startDate ?? "").trim())) {
+    query = query.gte("event_date", String(startDate).trim());
+  }
+
+  if (bookedDatePattern.test(String(endDate ?? "").trim())) {
+    query = query.lte("event_date", String(endDate).trim());
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return normalizeBookingRequestList(data);
+};
+
+export const fetchBookingAvailabilityWindow = async ({ startDate, endDate } = {}) => {
+  const [bookedDates, bookingRequests] = await Promise.all([
+    fetchBookedDates({ startDate, endDate }),
+    fetchBookingRequests({ startDate, endDate })
+  ]);
+
+  return {
+    bookedDates,
+    bookingRequests,
+    source: "supabase"
+  };
+};
+
+export const getFallbackBookingAvailability = () => {
+  const year = new Date().getFullYear();
+  const buildFallbackDate = (day) => `${year}-04-${String(day).padStart(2, "0")}`;
+
+  return {
+    bookedDates: normalizeDateList([
+      buildFallbackDate(6),
+      buildFallbackDate(19),
+      buildFallbackDate(27)
+    ]),
+    bookingRequests: normalizeBookingRequestList([
+      {
+        id: "fallback-booking-request-1",
+        event_date: buildFallbackDate(3),
+        start_time: "06:00",
+        end_time: "07:00",
+        status: "pending"
+      },
+      {
+        id: "fallback-booking-request-2",
+        event_date: buildFallbackDate(9),
+        start_time: "10:00",
+        end_time: "12:00",
+        status: "booked"
+      },
+      {
+        id: "fallback-booking-request-3",
+        event_date: buildFallbackDate(14),
+        start_time: "08:00",
+        end_time: "12:00",
+        status: "booked"
+      },
+      {
+        id: "fallback-booking-request-4",
+        event_date: buildFallbackDate(22),
+        start_time: "07:00",
+        end_time: "08:00",
+        status: "pending"
+      }
+    ])
+  };
+};
+
+export const fetchReviews = async ({ visibleOnly = false } = {}) => {
   const { data, error } = await supabaseClient
     .from("reviews")
     .select("*")
@@ -330,8 +523,13 @@ export const fetchReviews = async () => {
     throw error;
   }
 
+  const sourceRows = Array.isArray(data) ? data : [];
+  const reviewRows = visibleOnly
+    ? sourceRows.filter((item) => item?.is_visible !== false)
+    : sourceRows;
+
   return {
-    reviews: normalizeReviewList(data),
+    reviews: normalizeReviewList(reviewRows),
     source: "supabase",
     warning: null
   };
@@ -360,6 +558,141 @@ export const fetchEnquiries = async () => {
     source: "supabase",
     warning: null
   };
+};
+
+export const submitBookingRequest = async (input) => {
+  const eventDate = String(input.eventDate ?? "").trim();
+  const startTime = normalizeBookingTime(input.startTime);
+  const endTime = normalizeBookingTime(input.endTime);
+  const customerName = normalizeBookingText(input.customerName);
+  const customerPhone = normalizeBookingPhone(input.customerPhone);
+  const customerEmail = normalizeBookingEmail(input.customerEmail);
+  const organisation = normalizeBookingText(input.organisation);
+  const eventType = normalizeBookingText(input.eventType || "Other") || "Other";
+  const attendeeCount = Number.parseInt(String(input.attendeeCount ?? "").trim(), 10);
+  const notes = normalizeBookingNotes(input.notes);
+  const enquiryMessage = String(input.enquiryMessage ?? "").trim();
+
+  if (!bookedDatePattern.test(eventDate)) {
+    throw new Error("Please choose a valid booking date.");
+  }
+
+  if (!startTime || !endTime || startTime >= endTime) {
+    throw new Error("Please choose a valid booking time range.");
+  }
+
+  if (!customerName) {
+    throw new Error("Please enter your name.");
+  }
+
+  if (!customerPhone) {
+    throw new Error("Please enter a valid phone number.");
+  }
+
+  if (!Number.isInteger(attendeeCount) || attendeeCount < 1) {
+    throw new Error("Attendee count must be at least 1.");
+  }
+
+  if (customerEmail) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(customerEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+  }
+
+  const bookingPayload = {
+    event_date: eventDate,
+    start_time: startTime,
+    end_time: endTime,
+    customer_name: customerName,
+    customer_phone: customerPhone,
+    customer_email: customerEmail || null,
+    organisation: organisation || null,
+    event_type: eventType,
+    attendee_count: attendeeCount,
+    notes: notes || null,
+    status: "pending"
+  };
+
+  const { data: bookingData, error: bookingError } = await supabaseClient
+    .from("booking_requests")
+    .insert(bookingPayload)
+    .select("id, event_date, start_time, end_time, status")
+    .single();
+
+  if (bookingError) {
+    throw bookingError;
+  }
+
+  const { error: enquiryError } = await supabaseClient
+    .from("enquiries")
+    .insert({
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      event_date: eventDate,
+      message: enquiryMessage || null,
+      status: "new"
+    });
+
+  if (enquiryError) {
+    await supabaseClient
+      .from("booking_requests")
+      .delete()
+      .eq("id", bookingData.id);
+
+    throw enquiryError;
+  }
+
+  return {
+    bookingRequest: normalizeBookingRequestList([bookingData])[0],
+    enquiryMessage
+  };
+};
+
+export const sendBookingAdminNotification = async (input) => {
+  const customerName = normalizeBookingText(input.customerName);
+  const customerPhone = normalizeBookingPhone(input.customerPhone);
+  const customerEmail = normalizeBookingEmail(input.customerEmail);
+  const eventDate = String(input.eventDate ?? "").trim();
+  const startTime = normalizeBookingTime(input.startTime);
+  const endTime = normalizeBookingTime(input.endTime);
+  const eventType = normalizeBookingText(input.eventType || "Other") || "Other";
+  const attendeeCount = String(input.attendeeCount ?? "").trim();
+  const notes = normalizeBookingNotes(input.notes);
+
+  if (!customerName || !customerPhone || !bookedDatePattern.test(eventDate) || !startTime || !endTime) {
+    throw new Error("Booking notification payload is incomplete.");
+  }
+
+  const timeRange = `${startTime} - ${endTime}`;
+  const response = await fetch(EMAILJS_BOOKING_ADMIN_CONFIG.endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      service_id: EMAILJS_BOOKING_ADMIN_CONFIG.serviceId,
+      template_id: EMAILJS_BOOKING_ADMIN_CONFIG.templateId,
+      user_id: EMAILJS_BOOKING_ADMIN_CONFIG.publicKey,
+      template_params: {
+        admin_email: EMAILJS_BOOKING_ADMIN_CONFIG.adminEmail,
+        name: customerName,
+        phone: formatIndianPhoneDisplay(customerPhone, customerPhone),
+        email: customerEmail || "Not provided",
+        event_date: formatBookingNotificationDate(eventDate),
+        time_range: timeRange,
+        event_type: eventType,
+        attendees: attendeeCount || "Not provided",
+        notes: notes || "Not provided"
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = (await response.text()).trim();
+    throw new Error(errorText || "Admin email notification could not be sent.");
+  }
 };
 
 export const fetchGalleryAssets = async () => {
@@ -623,8 +956,10 @@ export const addReview = async (input) => {
 
   const payloadCandidates = [
     {
+      name: normalized.name,
       reviewer_name: normalized.name,
       event_type: normalized.event,
+      date_label: normalized.date,
       event_date: normalized.date,
       review_text: normalized.text,
       is_visible: true
@@ -634,6 +969,13 @@ export const addReview = async (input) => {
       event_type: normalized.event,
       date_label: normalized.date,
       review_text: normalized.text
+    },
+    {
+      reviewer_name: normalized.name,
+      event_type: normalized.event,
+      event_date: normalized.date,
+      review_text: normalized.text,
+      is_visible: true
     }
   ];
 
@@ -705,6 +1047,7 @@ export const deleteEnquiry = async (id) => {
 
 export const subscribeToVenueUpdates = ({
   onBookingsChange,
+  onBookingRequestsChange,
   onReviewsChange,
   onSettingsChange,
   onError
@@ -715,6 +1058,11 @@ export const subscribeToVenueUpdates = ({
       "postgres_changes",
       { event: "*", schema: "public", table: "bookings" },
       (payload) => onBookingsChange?.(payload)
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "booking_requests" },
+      (payload) => onBookingRequestsChange?.(payload)
     )
     .on(
       "postgres_changes",

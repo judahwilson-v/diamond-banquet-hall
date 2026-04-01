@@ -1,20 +1,65 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-const SUPABASE_URL = "https://awzffyogkxsyiidajkmt.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3emZmeW9na3hzeWlpZGFqa210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NzI4MjAsImV4cCI6MjA5MDU0ODgyMH0.tkZ4yGJBmikTYBbqNOuIXRljsL1uEfixj3CqiBSLwYs";
+const runtimeConfig = globalThis.DIAMOND_RUNTIME_CONFIG ?? {};
+const SUPABASE_URL = String(runtimeConfig.SUPABASE_URL ?? "").trim();
+const SUPABASE_ANON_KEY = String(runtimeConfig.SUPABASE_ANON_KEY ?? "").trim();
 
-export const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true
+const createConfigError = (message) => {
+  const error = new Error(message);
+  error.code = "SUPABASE_CONFIG_MISSING";
+  return error;
+};
+
+const buildThrowingClientProxy = (error) => {
+  const callable = () => {
+    throw error;
+  };
+
+  return new Proxy(callable, {
+    get(_target, property) {
+      if (property === "then") {
+        return undefined;
+      }
+
+      return buildThrowingClientProxy(error);
+    },
+    apply() {
+      throw error;
     }
-  }
-);
+  });
+};
 
-export const supabaseClient = supabase;
-export { SUPABASE_URL, SUPABASE_ANON_KEY };
+let SUPABASE_CONFIG_ERROR = null;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  SUPABASE_CONFIG_ERROR = createConfigError(
+    "Supabase runtime config is missing. Set DIAMOND_SUPABASE_URL and DIAMOND_SUPABASE_ANON_KEY."
+  );
+} else {
+  try {
+    const parsedUrl = new URL(SUPABASE_URL);
+
+    if (!/^https?:$/.test(parsedUrl.protocol)) {
+      throw new Error("Supabase runtime config must use an http or https URL.");
+    }
+  } catch (_error) {
+    SUPABASE_CONFIG_ERROR = createConfigError(
+      "Supabase runtime config is invalid. Check DIAMOND_SUPABASE_URL and DIAMOND_SUPABASE_ANON_KEY."
+    );
+  }
+}
+
+const supabase = SUPABASE_CONFIG_ERROR
+  ? buildThrowingClientProxy(SUPABASE_CONFIG_ERROR)
+  : createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    });
+
+const supabaseClient = supabase;
+const hasSupabaseConfig = !SUPABASE_CONFIG_ERROR;
+
+export { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_CONFIG_ERROR, hasSupabaseConfig, supabase, supabaseClient };

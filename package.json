@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist/css dist/js dist/images && cp index.html admin.html login.html dist/ && cp css/*.css dist/css/ && cp js/*.js dist/js/ && cp images/* dist/images/",
+    "build": "node ./scripts/build.mjs",
     "dev": "npm run build && wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist --project-name diamond-banquet-hall"
   },
