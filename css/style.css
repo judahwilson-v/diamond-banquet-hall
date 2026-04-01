@@ -14,24 +14,37 @@
   --nav-height: 88px;
 }
 
+html,
+body {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+  margin: 0;
+  padding: 0;
+}
+
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
+  box-sizing: inherit;
 }
 
 body {
-  margin: 0;
   font-family: "Montserrat", sans-serif;
   font-weight: 300;
   color: var(--color-black);
   background: var(--color-ivory);
   line-height: 1.65;
   text-rendering: optimizeLegibility;
+}
+
+body.has-custom-cursor,
+body.has-custom-cursor a,
+body.has-custom-cursor button {
+  cursor: none;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 body.menu-open,
@@ -94,7 +107,6 @@ h3,
 .pricing-card__amount,
 .site-footer__logo,
 .map-link__text strong,
-.loading-screen__wordmark,
 .calendar-modal__header h2,
 .hero h1 {
   font-family: "Playfair Display", serif;
@@ -105,6 +117,60 @@ h3,
 :focus-visible {
   outline: 2px solid var(--color-gold);
   outline-offset: 3px;
+}
+
+.luxury-cursor {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.luxury-cursor.is-visible {
+  opacity: 1;
+}
+
+.luxury-cursor__dot,
+.luxury-cursor__ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  transform: translate3d(-50%, -50%, 0);
+  will-change: transform, opacity;
+}
+
+.luxury-cursor__dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-gold);
+}
+
+.luxury-cursor__ring {
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(212, 175, 55, 0.95);
+  transition:
+    width 0.25s ease,
+    height 0.25s ease,
+    opacity 0.25s ease;
+}
+
+.luxury-cursor.is-hovering .luxury-cursor__ring {
+  width: 39px;
+  height: 39px;
+}
+
+.luxury-cursor.is-pressed .luxury-cursor__dot {
+  opacity: 0.85;
+}
+
+.luxury-cursor.is-pressed .luxury-cursor__ring {
+  width: 24px;
+  height: 24px;
 }
 
 .button {
@@ -174,58 +240,12 @@ h3,
   color: var(--color-gold);
 }
 
-#loading-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: grid;
-  place-items: center;
-  background: var(--color-ivory);
-  transition:
-    opacity 0.35s ease,
-    visibility 0.35s ease;
-}
-
-.loading-screen__inner {
-  display: grid;
-  gap: 16px;
-  place-items: center;
-}
-
-.loading-screen__wordmark {
-  font-size: 48px;
-  color: var(--color-gold);
-}
-
-.loading-screen__line {
-  width: min(220px, 48vw);
-  height: 1px;
-  background: rgba(212, 175, 55, 0.18);
-  position: relative;
-  overflow: hidden;
-}
-
-.loading-screen__line::after {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 0;
-  background: var(--color-gold);
-  animation: loading-line 1.2s ease forwards;
-}
-
-body.loaded #loading-screen {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none !important;
-}
-
 .site-header {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 120;
+  z-index: 1000;
   transition:
     background-color var(--ease),
     backdrop-filter var(--ease),
@@ -272,6 +292,14 @@ body.loaded #loading-screen {
 
 .site-nav__links a {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 0.25s ease,
+    color var(--ease);
+  will-change: transform;
 }
 
 .site-nav__links a::after,
@@ -315,9 +343,12 @@ body.loaded #loading-screen {
 .mobile-menu {
   position: fixed;
   inset: 0;
-  z-index: 110;
+  z-index: 95;
   background: rgba(249, 249, 249, 0.98);
-  display: flex;
+  display: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -327,6 +358,13 @@ body.loaded #loading-screen {
   text-transform: uppercase;
 }
 
+.mobile-menu.is-open {
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 .mobile-menu a {
   min-height: 44px;
   display: inline-flex;
@@ -334,8 +372,11 @@ body.loaded #loading-screen {
 }
 
 .hero {
-  min-height: 100vh;
   position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
   display: grid;
   place-items: center;
   padding: calc(var(--nav-height) + 32px) 24px 56px;
@@ -557,12 +598,23 @@ body.loaded #loading-screen {
 }
 
 .gallery-item img {
+  width: 100%;
+  object-fit: cover;
+  aspect-ratio: 4 / 3;
   transition: transform var(--ease), opacity var(--ease);
 }
 
 .gallery-item:hover img,
 .gallery-item:focus-visible img {
   transform: scale(1.02);
+}
+
+.gallery-item--featured img {
+  aspect-ratio: 4 / 5;
+}
+
+.gallery-item--portrait img {
+  aspect-ratio: 4 / 6;
 }
 
 .pricing-section {
@@ -766,6 +818,62 @@ body.loaded #loading-screen {
   font-size: 0.8rem;
 }
 
+.map-preview-section {
+  background:
+    radial-gradient(circle at top left, rgba(212, 175, 55, 0.08), transparent 42%),
+    linear-gradient(180deg, rgba(194, 184, 163, 0.1), rgba(249, 249, 249, 0.92));
+}
+
+.map-preview {
+  width: var(--container);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(24px, 5vw, 48px);
+  align-items: center;
+}
+
+.map-preview__copy {
+  display: grid;
+  gap: 18px;
+}
+
+.map-preview__copy h2 {
+  font-size: clamp(2.2rem, 4.8vw, 4.2rem);
+}
+
+.map-preview__copy p:last-of-type {
+  color: rgba(10, 10, 10, 0.68);
+  max-width: 42ch;
+}
+
+.map-preview__frame {
+  position: relative;
+  min-height: 460px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(10, 10, 10, 0.06), rgba(10, 10, 10, 0.06)),
+    var(--color-taupe);
+}
+
+.map-preview__frame::after {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  pointer-events: none;
+}
+
+.map-preview__frame iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 460px;
+  border: 0;
+  filter: grayscale(1) invert(0.9) contrast(1.04) brightness(0.88);
+}
+
 .contact-section {
   background: var(--color-black);
   color: var(--color-ivory);
@@ -893,68 +1001,141 @@ body.loaded #loading-screen {
   font-size: 12px;
 }
 
-.whatsapp-float {
+.site-footer__stealth-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-footer__stealth-link:hover,
+.site-footer__stealth-link:focus-visible {
+  color: inherit;
+  text-decoration: none;
+}
+
+.floating-contact-bar {
   position: fixed;
+  top: 50%;
   right: 20px;
-  bottom: 20px;
-  z-index: 9999;
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: grid;
+  gap: 12px;
+  padding: 12px 10px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: rgba(249, 249, 249, 0.94);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 40px rgba(10, 10, 10, 0.12);
+}
+
+.contact-rail__item {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
   display: grid;
   place-items: center;
-  background: #25d366;
-  color: var(--color-white);
-  box-shadow: 0 0 0 rgba(37, 211, 102, 0.45);
+  background: var(--color-ivory);
+  color: var(--color-black);
+  transition:
+    transform var(--ease),
+    border-color var(--ease),
+    color var(--ease),
+    background-color var(--ease);
+}
+
+.contact-rail__item:hover,
+.contact-rail__item:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(212, 175, 55, 0.72);
+  color: var(--color-gold);
+}
+
+.contact-rail__item svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.contact-rail__item--whatsapp {
+  color: #25d366;
+  box-shadow: 0 0 0 rgba(37, 211, 102, 0.42);
   animation: whatsapp-pulse 2s infinite;
 }
 
-.whatsapp-float svg {
-  width: 28px;
-  height: 28px;
-}
-
-.whatsapp-float__tooltip {
+.contact-rail__tooltip {
   position: absolute;
-  right: 68px;
-  padding: 8px 12px;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 7px 10px;
   background: var(--color-black);
   color: var(--color-ivory);
-  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
   white-space: nowrap;
   opacity: 0;
   visibility: hidden;
   transition:
     opacity var(--ease),
     visibility var(--ease);
-  font-size: 0.78rem;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
-.whatsapp-float:hover .whatsapp-float__tooltip,
-.whatsapp-float:focus-visible .whatsapp-float__tooltip {
+.contact-rail__item:hover .contact-rail__tooltip,
+.contact-rail__item:focus-visible .contact-rail__tooltip {
   opacity: 1;
   visibility: visible;
 }
 
-body.keyboard-open .whatsapp-float {
+body.keyboard-open .floating-contact-bar {
   opacity: 0;
   visibility: hidden;
   transform: translateY(16px);
   pointer-events: none;
 }
 
-.calendar-modal,
+#calendar-modal,
 .lightbox {
   position: fixed;
   inset: 0;
-  z-index: 300;
-  background: rgba(10, 10, 10, 0.9);
 }
 
-.calendar-modal {
+#calendar-modal {
+  display: none;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 10, 0.95);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#calendar-modal.is-open {
   display: grid;
   place-items: center;
   padding: 24px;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.lightbox {
+  display: none;
+  z-index: 9998;
+  background: rgba(10, 10, 10, 0.68);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .calendar-modal__dialog {
@@ -1024,10 +1205,19 @@ body.keyboard-open .whatsapp-float {
 }
 
 .calendar-weekdays,
-.calendar-days {
+.calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+}
+
+.calendar-grid {
+  gap: 5px;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
 }
 
 .calendar-weekdays {
@@ -1043,11 +1233,12 @@ body.keyboard-open .whatsapp-float {
 }
 
 .calendar-day {
-  min-height: 74px;
-  padding: 10px;
-  display: grid;
-  align-content: start;
-  gap: 6px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  padding: 0;
   background: var(--color-ivory);
   border: 1px solid rgba(10, 10, 10, 0.08);
   transition:
@@ -1063,26 +1254,22 @@ body.keyboard-open .whatsapp-float {
 
 .calendar-day:disabled {
   cursor: not-allowed;
-}
-
-.calendar-day__number {
   font-weight: 400;
-}
-
-.calendar-day__label {
-  font-size: 0.68rem;
-  color: rgba(10, 10, 10, 0.62);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  line-height: 1;
 }
 
 .calendar-day.is-booked {
   background: rgba(192, 57, 43, 0.6);
+  text-decoration: line-through;
 }
 
-.calendar-day.is-booked .calendar-day__number,
-.calendar-day.is-booked .calendar-day__label {
-  text-decoration: line-through;
+.calendar-day.is-available {
+  cursor: pointer;
+}
+
+.calendar-day.is-selected {
+  border-color: var(--color-gold);
+  background: rgba(212, 175, 55, 0.12);
 }
 
 .calendar-day.is-today {
@@ -1101,6 +1288,11 @@ body.keyboard-open .whatsapp-float {
   margin-top: 20px;
   display: grid;
   gap: 16px;
+}
+
+.calendar-modal__selection {
+  min-height: 1.5em;
+  color: rgba(10, 10, 10, 0.72);
 }
 
 .calendar-legend {
@@ -1136,12 +1328,15 @@ body.keyboard-open .whatsapp-float {
   flex-wrap: wrap;
 }
 
-.lightbox {
+.lightbox.is-open {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 18px;
   padding: 24px;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .lightbox__stage {
@@ -1150,6 +1345,9 @@ body.keyboard-open .whatsapp-float {
   gap: 18px;
   justify-items: center;
   position: relative;
+  padding: 40px 28px 24px;
+  background: rgba(10, 10, 10, 0.24);
+  border: 1px solid rgba(249, 249, 249, 0.12);
 }
 
 .lightbox__stage img {
@@ -1171,7 +1369,7 @@ body.keyboard-open .whatsapp-float {
 
 [data-reveal] {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(20px);
   transition:
     opacity 0.6s ease,
     transform 0.6s ease;
@@ -1180,16 +1378,6 @@ body.keyboard-open .whatsapp-float {
 [data-reveal].is-visible {
   opacity: 1;
   transform: translateY(0);
-}
-
-@keyframes loading-line {
-  from {
-    width: 0;
-  }
-
-  to {
-    width: 100%;
-  }
 }
 
 @keyframes hero-zoom {
@@ -1241,7 +1429,8 @@ body.keyboard-open .whatsapp-float {
   .feature-row,
   .feature-row--reverse,
   .contact-grid,
-  .pricing-grid {
+  .pricing-grid,
+  .map-preview {
     grid-template-columns: 1fr;
     display: grid;
   }
@@ -1260,6 +1449,25 @@ body.keyboard-open .whatsapp-float {
 
   .reviews-track {
     grid-auto-columns: minmax(240px, 86vw);
+  }
+
+  .floating-contact-bar {
+    top: auto;
+    left: 50%;
+    right: auto;
+    bottom: 16px;
+    transform: translateX(-50%);
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    padding: 10px;
+  }
+
+  .contact-rail__tooltip {
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: calc(100% + 10px);
+    transform: translateX(-50%);
   }
 }
 
@@ -1285,12 +1493,15 @@ body.keyboard-open .whatsapp-float {
   }
 
   .calendar-day {
-    min-height: 64px;
-    padding: 8px;
+    min-height: 0;
   }
 
-  .calendar-day__label {
-    display: none;
+  .map-preview__frame {
+    min-height: 360px;
+  }
+
+  .map-preview__frame iframe {
+    min-height: 360px;
   }
 
   .lightbox {
@@ -1301,6 +1512,11 @@ body.keyboard-open .whatsapp-float {
   .lightbox__arrow {
     width: 36px;
     height: 36px;
+  }
+
+  .contact-rail__item {
+    width: 48px;
+    height: 48px;
   }
 }
 
@@ -1319,5 +1535,17 @@ body.keyboard-open .whatsapp-float {
   [data-reveal] {
     opacity: 1;
     transform: none;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  body.has-custom-cursor,
+  body.has-custom-cursor a,
+  body.has-custom-cursor button {
+    cursor: auto;
+  }
+
+  .luxury-cursor {
+    display: none;
   }
 }

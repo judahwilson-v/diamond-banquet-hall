@@ -68,13 +68,6 @@
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <div id="loading-screen" aria-hidden="true">
-      <div class="loading-screen__inner">
-        <p class="loading-screen__wordmark">Diamond</p>
-        <span class="loading-screen__line"></span>
-      </div>
-    </div>
-
     <header class="site-header">
       <nav class="site-nav" aria-label="Primary navigation">
         <a class="site-logo" href="#top">Diamond</a>
@@ -117,7 +110,7 @@
         <div class="hero__overlay"></div>
         <div class="hero__content" data-reveal>
           <p class="hero__subline" data-brand-text="locationLabel">Allapra, Perumbavoor</p>
-          <h1>Diamond Banquet Hall</h1>
+          <h1 data-brand-text="venueName">Diamond Banquet Hall</h1>
           <p class="hero__tagline">Where every celebration becomes a memory</p>
           <div class="hero__actions">
             <button class="button button--ghost" type="button" data-open-calendar>
@@ -129,6 +122,7 @@
               target="_blank"
               rel="noopener noreferrer"
               data-brand-href="whatsappHref"
+              data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about hall availability and pricing."
             >
               WhatsApp Us
             </a>
@@ -575,6 +569,38 @@
         </div>
       </section>
 
+      <section class="section map-preview-section" aria-label="Location preview">
+        <div class="map-preview" data-reveal>
+          <div class="map-preview__copy">
+            <p class="section-heading__eyebrow">Location</p>
+            <h2>Visit Diamond Banquet Hall in the heart of Allapra.</h2>
+            <p>
+              Preview the venue location before your visit, then open Google Maps for
+              turn-by-turn directions to Diamond Arcade, Perumbavoor.
+            </p>
+            <a
+              class="button button--ghost-dark"
+              href="https://maps.app.goo.gl/vZWrqc6f6b9hvNj88"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-brand-href="mapsHref"
+            >
+              View Directions
+            </a>
+          </div>
+
+          <div class="map-preview__frame">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3928.016312065564!2d76.47197627503245!3d10.09774879001269!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b07e3eeb50d8d21%3A0x7be252325dca7b52!2sDiamond%20Banquet%20hall%20A%2FC%20Allapra!5e0!3m2!1sen!2sin!4v1775017713031!5m2!1sen!2sin"
+              title="Map preview for Diamond Banquet Hall"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allowfullscreen=""
+            ></iframe>
+          </div>
+        </div>
+      </section>
+
       <section class="section contact-section" id="contact" aria-label="Contact information">
         <div class="contact-grid">
           <div class="contact-copy" data-reveal>
@@ -598,6 +624,7 @@
                   target="_blank"
                   rel="noopener noreferrer"
                   data-brand-href="whatsappHref"
+                  data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about my event on WhatsApp."
                 >
                   Chat on WhatsApp
                 </a>
@@ -653,26 +680,82 @@
         <a href="#pricing">Pricing</a>
         <a href="#contact">Contact</a>
       </nav>
-      <p>© 2025 Diamond Banquet Hall, Allapra. All rights reserved.</p>
+      <p>
+        © 2025
+        <a class="site-footer__stealth-link" href="login.html">Diamond Banquet Hall</a>,
+        Allapra. All rights reserved.
+      </p>
       <p>Designed with care for Diamond Arcade, Perumbavoor</p>
     </footer>
 
-    <a
-      class="whatsapp-float"
-      href="https://wa.me/919947681202"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Chat with us on WhatsApp"
-      data-brand-href="whatsappHref"
-    >
-      <span class="whatsapp-float__tooltip">Chat with us</span>
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <path
-          d="M16 3.2A12.66 12.66 0 0 0 5.1 22.3L3 29l6.9-2a12.8 12.8 0 1 0 6.1-23.8Zm0 23.1a10.5 10.5 0 0 1-5.3-1.4l-.4-.2-4.1 1.2 1.3-4-.3-.4A10.5 10.5 0 1 1 16 26.3Zm5.8-7.9c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2s-.8 1-1 1.1c-.2.2-.4.2-.8 0s-1.5-.6-2.8-1.8c-1-1-1.8-2.1-2-2.5s0-.5.1-.7c.1-.1.3-.4.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.6s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.4c.2.2 2.4 3.7 5.9 5.1.8.4 1.5.6 2 .7.8.3 1.6.2 2.1.1.7-.1 1.8-.8 2-1.5.3-.7.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4Z"
-          fill="currentColor"
-        />
-      </svg>
-    </a>
+    <div class="floating-contact-bar" aria-label="Quick contact actions">
+      <a
+        class="contact-rail__item contact-rail__item--whatsapp"
+        href="https://wa.me/919947681202"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat on WhatsApp"
+        data-brand-href="whatsappHref"
+        data-whatsapp-message="Hello Diamond Banquet Hall, I would like to enquire about availability and pricing."
+      >
+        <span class="contact-rail__tooltip">WhatsApp</span>
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M16 3.2A12.66 12.66 0 0 0 5.1 22.3L3 29l6.9-2a12.8 12.8 0 1 0 6.1-23.8Zm0 23.1a10.5 10.5 0 0 1-5.3-1.4l-.4-.2-4.1 1.2 1.3-4-.3-.4A10.5 10.5 0 1 1 16 26.3Zm5.8-7.9c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2s-.8 1-1 1.1c-.2.2-.4.2-.8 0s-1.5-.6-2.8-1.8c-1-1-1.8-2.1-2-2.5s0-.5.1-.7c.1-.1.3-.4.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.6s-.7-1.7-1-2.3c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.4c.2.2 2.4 3.7 5.9 5.1.8.4 1.5.6 2 .7.8.3 1.6.2 2.1.1.7-.1 1.8-.8 2-1.5.3-.7.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4Z"
+            fill="currentColor"
+          />
+        </svg>
+      </a>
+      <a
+        class="contact-rail__item"
+        href="tel:+919947681202"
+        aria-label="Call Diamond Banquet Hall"
+        data-brand-href="phoneHref"
+      >
+        <span class="contact-rail__tooltip">Call</span>
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path
+            d="M14 10h6l3 8-4 3a24 24 0 0 0 8 8l3-4 8 3v6c0 2-2 4-4 4C22 38 10 26 10 14c0-2 2-4 4-4Z"
+          />
+        </svg>
+      </a>
+      <a
+        class="contact-rail__item"
+        href="https://maps.app.goo.gl/vZWrqc6f6b9hvNj88"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Open location in Google Maps"
+        data-brand-href="mapsHref"
+      >
+        <span class="contact-rail__tooltip">Location</span>
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 42s10-10.5 10-21a10 10 0 1 0-20 0c0 10.5 10 21 10 21Z" />
+          <path d="M24 24a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        </svg>
+      </a>
+    </div>
+
+    <div class="luxury-cursor" aria-hidden="true">
+      <span class="luxury-cursor__dot"></span>
+      <span class="luxury-cursor__ring"></span>
+    </div>
+
+    <div class="lightbox" id="lightbox" hidden>
+      <button class="lightbox__arrow lightbox__arrow--left" id="lightbox-prev" type="button" aria-label="Previous image">
+        ‹
+      </button>
+      <div class="lightbox__stage" role="dialog" aria-modal="true" aria-label="Gallery lightbox">
+        <button class="lightbox__close" id="lightbox-close" type="button" aria-label="Close gallery lightbox">
+          <span></span>
+          <span></span>
+        </button>
+        <img id="lightbox-image" src="" alt="" />
+        <p id="lightbox-caption"></p>
+      </div>
+      <button class="lightbox__arrow lightbox__arrow--right" id="lightbox-next" type="button" aria-label="Next image">
+        ›
+      </button>
+    </div>
 
     <div class="calendar-modal" id="calendar-modal" hidden>
       <div class="calendar-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
@@ -700,7 +783,7 @@
           <span>Fri</span>
           <span>Sat</span>
         </div>
-        <div class="calendar-days" id="calendar-days"></div>
+        <div class="calendar-days calendar-grid" id="calendar-days"></div>
 
         <div class="calendar-modal__footer">
           <div class="calendar-legend">
@@ -735,25 +818,6 @@
       </div>
     </div>
 
-    <div class="lightbox" id="lightbox" hidden>
-      <button class="lightbox__arrow lightbox__arrow--left" id="lightbox-prev" type="button" aria-label="Previous image">
-        ‹
-      </button>
-      <div class="lightbox__stage" role="dialog" aria-modal="true" aria-label="Gallery lightbox">
-        <button class="lightbox__close" id="lightbox-close" type="button" aria-label="Close gallery lightbox">
-          <span></span>
-          <span></span>
-        </button>
-        <img id="lightbox-image" src="" alt="" />
-        <p id="lightbox-caption"></p>
-      </div>
-      <button class="lightbox__arrow lightbox__arrow--right" id="lightbox-next" type="button" aria-label="Next image">
-        ›
-      </button>
-    </div>
-
-    <script src="js/bookings.js"></script>
-    <script src="js/reviews.js"></script>
-    <script src="js/main.js"></script>
+    <script type="module" src="./js/main.js"></script>
   </body>
 </html>

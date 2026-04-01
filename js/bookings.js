@@ -1,9 +1,7 @@
-// DIAMOND BANQUET HALL — Booked Dates
-// Format: "YYYY-MM-DD"
-// Edit this file to mark/unmark dates.
-// Save the file and push to GitHub — site updates automatically.
+// Fallback seed data for public rendering if Supabase is unavailable.
+// Supabase is the source of truth once the database is configured.
 
-const bookedDates = [
+export const fallbackBookedDates = [
   "2025-08-15",
   "2025-08-22",
   "2025-08-29",

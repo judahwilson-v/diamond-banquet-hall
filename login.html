@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diamond Admin Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&amp;family=Playfair+Display:wght@300;400;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/admin.css" />
+  </head>
+  <body class="admin-body">
+    <main class="admin-shell">
+      <section class="admin-login" aria-label="Admin login">
+        <div class="admin-login__card" id="login-card">
+          <p class="admin-login__eyebrow">Diamond - Admin Portal</p>
+          <h1>Sign in to the administrative workspace.</h1>
+          <p class="admin-login__copy">
+            Use your assigned name and password to access bookings, enquiries, reviews,
+            and site controls.
+          </p>
+
+          <form id="login-form" class="admin-form" novalidate>
+            <label class="admin-field">
+              <span>Name</span>
+              <input
+                id="login-username"
+                type="text"
+                aria-label="Name"
+                autocomplete="username"
+                placeholder="Enter your assigned name"
+              />
+            </label>
+
+            <label class="admin-field">
+              <span>Password</span>
+              <input
+                id="login-password"
+                type="password"
+                aria-label="Password"
+                autocomplete="current-password"
+                placeholder="Enter your password"
+              />
+            </label>
+
+            <button class="admin-button admin-button--primary" type="submit">Login</button>
+            <p class="admin-status" id="login-status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./js/login.js"></script>
+  </body>
+</html>
