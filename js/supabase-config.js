@@ -1,5 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
+console.log("RUNTIME CONFIG:", globalThis.DIAMOND_RUNTIME_CONFIG);
+
 const runtimeConfig = globalThis.DIAMOND_RUNTIME_CONFIG ?? {};
 const SUPABASE_URL = String(runtimeConfig.SUPABASE_URL ?? "").trim();
 const SUPABASE_ANON_KEY = String(runtimeConfig.SUPABASE_ANON_KEY ?? "").trim();
@@ -32,8 +34,14 @@ const buildThrowingClientProxy = (error) => {
 let SUPABASE_CONFIG_ERROR = null;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error("Supabase runtime config missing.", {
+    href: globalThis.location?.href,
+    runtimeConfig: globalThis.DIAMOND_RUNTIME_CONFIG,
+    readyState: globalThis.document?.readyState
+  });
+
   SUPABASE_CONFIG_ERROR = createConfigError(
-    "Supabase runtime config is missing. Set DIAMOND_SUPABASE_URL and DIAMOND_SUPABASE_ANON_KEY."
+    "Supabase runtime config is missing. Verify /js/runtime-config.js is being served from the deployed dist output."
   );
 } else {
   try {

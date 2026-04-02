@@ -372,6 +372,11 @@
   border-color: rgba(212, 175, 55, 0.88);
 }
 
+.booking-slot--static {
+  cursor: default;
+  pointer-events: none;
+}
+
 .booking-slot:disabled {
   cursor: default;
 }
@@ -719,7 +724,7 @@
 
 @media (max-width: 840px) {
   .booking-nav {
-    width: min(100vw - 32px, 100%);
+    width: min(calc(100vw - 32px), 100%);
   }
 
   .booking-nav__links {

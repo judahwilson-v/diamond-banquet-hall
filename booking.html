@@ -7,12 +7,12 @@
     <title>Diamond Banquet Hall Booking | Allapra, Perumbavoor</title>
     <meta
       name="description"
-      content="Check Diamond Banquet Hall availability, choose a 4-hour slot, and send your booking request online."
+      content="Check Diamond Banquet Hall availability, choose your event date, and send your booking request online."
     />
     <meta property="og:title" content="Diamond Banquet Hall Booking" />
     <meta
       property="og:description"
-      content="Check Diamond Banquet Hall availability, choose a 4-hour slot, and send your booking request online."
+      content="Check Diamond Banquet Hall availability, choose your event date, and send your booking request online."
     />
     <meta property="og:image" content="images/hero.jpg" />
     <meta property="og:url" content="https://diamondbanquethall.com/booking.html" />
@@ -53,7 +53,7 @@
           <p class="section-heading__eyebrow" data-brand-text="locationLabel">Allapra, Perumbavoor</p>
           <h1 id="booking-page-title">Plan Your Hall Booking</h1>
           <p class="booking-hero-card__copy">
-            Pick an event date, review the available 4-hour slots, and send your request directly to the Diamond team.
+            Pick an event date, review confirmed availability, and send your request directly to the Diamond team.
           </p>
         </section>
 
@@ -85,8 +85,7 @@
 
           <div class="booking-calendar__legend" aria-label="Calendar availability legend">
             <span><i class="booking-calendar__legend-box booking-calendar__legend-box--available"></i>Available</span>
-            <span><i class="booking-calendar__legend-box booking-calendar__legend-box--partial"></i>Partially booked</span>
-            <span><i class="booking-calendar__legend-box booking-calendar__legend-box--booked"></i>Fully booked</span>
+            <span><i class="booking-calendar__legend-box booking-calendar__legend-box--booked"></i>Confirmed booking</span>
           </div>
 
           <p class="booking-panel__note" id="booking-calendar-note" aria-live="polite">
@@ -100,14 +99,14 @@
         <section class="booking-panel" id="booking-slots-section" aria-labelledby="booking-slots-title">
           <div class="booking-panel__header">
             <p class="section-heading__eyebrow">Section 2</p>
-            <h2 id="booking-slots-title">Time Slots</h2>
+            <h2 id="booking-slots-title">Selected Date</h2>
           </div>
 
           <p class="booking-slot-summary" id="booking-slot-summary" aria-live="polite">
-            Selected: --:-- &ndash; --:-- (0 hrs)
+            Selected date: No date selected
           </p>
           <p class="booking-slot-note" id="booking-slot-note" aria-live="polite">
-            Choose an available date to unlock the 06:00 to 12:00 slot window.
+            Choose an available date to prepare your request. Pending requests stay open until the Diamond team confirms them.
           </p>
           <div class="booking-slots-grid" id="booking-slot-grid"></div>
         </section>
@@ -255,7 +254,7 @@
       <div class="booking-success__dialog" role="dialog" aria-modal="true" aria-labelledby="booking-success-title">
         <p class="section-heading__eyebrow">Booking Request</p>
         <h2 id="booking-success-title">Booking request sent.</h2>
-        <p>Confirmation within 24 hours.</p>
+        <p>The Diamond team will confirm your date within 24 hours.</p>
         <button class="button button--solid" id="booking-reset-button" type="button">New Booking</button>
       </div>
     </div>
@@ -270,7 +269,7 @@
       <p>© <span id="booking-footer-year">2025</span> Diamond Banquet Hall, Allapra. All rights reserved.</p>
     </footer>
 
-    <script src="./js/runtime-config.js"></script>
-    <script type="module" src="./js/booking.js"></script>
+    <script src="/js/runtime-config.js"></script>
+    <script type="module" src="/js/booking.js"></script>
   </body>
 </html>

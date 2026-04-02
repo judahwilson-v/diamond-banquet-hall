@@ -1,6 +1,4 @@
 import {
-  BOOKING_MINIMUM_HOURS,
-  BOOKING_SLOT_DEFINITIONS,
   DEFAULT_SITE_SETTINGS,
   buildWhatsAppLink,
   describeSupabaseError,
@@ -9,6 +7,9 @@ import {
   sendBookingAdminNotification,
   submitBookingRequest
 } from "./site-data.js";
+
+const FIXED_BOOKING_START = "06:00";
+const FIXED_BOOKING_END = "12:00";
 
 const loadingModule = {
   init() {
@@ -69,11 +70,6 @@ const formatLongDate = (dateKey) =>
     year: "numeric"
   });
 
-const timeStringToMinutes = (timeValue) => {
-  const [hour = "0", minute = "0"] = String(timeValue ?? "").split(":");
-  return Number(hour) * 60 + Number(minute);
-};
-
 const createElement = (tag, className, text) => {
   const element = document.createElement(tag);
 
@@ -86,58 +82,6 @@ const createElement = (tag, className, text) => {
   }
 
   return element;
-};
-
-const buildBlockedSlotsByDate = (bookingRequests) => {
-  const blockedSlotsByDate = new Map();
-
-  bookingRequests.forEach((request) => {
-    const blockedSlots = blockedSlotsByDate.get(request.eventDate) ?? new Set();
-    const requestStart = timeStringToMinutes(request.startTime);
-    const requestEnd = timeStringToMinutes(request.endTime);
-
-    BOOKING_SLOT_DEFINITIONS.forEach((slot) => {
-      const slotStart = timeStringToMinutes(slot.start);
-      const slotEnd = timeStringToMinutes(slot.end);
-
-      if (requestStart < slotEnd && requestEnd > slotStart) {
-        blockedSlots.add(slot.index);
-      }
-    });
-
-    blockedSlotsByDate.set(request.eventDate, blockedSlots);
-  });
-
-  return blockedSlotsByDate;
-};
-
-const hasValidSlotWindow = (blockedSlots) => {
-  const latestStartIndex = BOOKING_SLOT_DEFINITIONS.length - BOOKING_MINIMUM_HOURS;
-
-  for (let startIndex = 0; startIndex <= latestStartIndex; startIndex += 1) {
-    let isWindowOpen = true;
-
-    for (let offset = 0; offset < BOOKING_MINIMUM_HOURS; offset += 1) {
-      if (blockedSlots.has(startIndex + offset)) {
-        isWindowOpen = false;
-        break;
-      }
-    }
-
-    if (isWindowOpen) {
-      return true;
-    }
-  }
-
-  return false;
-};
-
-const getSlotRangeHours = (startIndex, endIndex) => {
-  if (!Number.isInteger(startIndex) || !Number.isInteger(endIndex) || endIndex < startIndex) {
-    return 0;
-  }
-
-  return endIndex - startIndex + 1;
 };
 
 const getPhoneDigitCount = (value) => String(value ?? "").replace(/\D/g, "").length;
@@ -185,49 +129,11 @@ const runWithSingleRetry = async (task, { delayMs = 650 } = {}) => {
   }
 };
 
-const getSelectedSlotDetails = (state) => {
-  if (
-    !Number.isInteger(state?.selectedSlotStartIndex) ||
-    !Number.isInteger(state?.selectedSlotEndIndex)
-  ) {
-    return null;
-  }
-
-  const startSlot = BOOKING_SLOT_DEFINITIONS[state.selectedSlotStartIndex];
-  const endSlot = BOOKING_SLOT_DEFINITIONS[state.selectedSlotEndIndex];
-
-  if (!startSlot || !endSlot) {
-    return null;
-  }
-
-  return {
-    startIndex: state.selectedSlotStartIndex,
-    endIndex: state.selectedSlotEndIndex,
-    startTime: startSlot.start,
-    endTime: endSlot.end,
-    durationHours: getSlotRangeHours(state.selectedSlotStartIndex, state.selectedSlotEndIndex)
-  };
-};
-
-const selectionHasSlotConflict = (blockedSlots, slotDetails) => {
-  if (!slotDetails) {
-    return false;
-  }
-
-  for (let slotIndex = slotDetails.startIndex; slotIndex <= slotDetails.endIndex; slotIndex += 1) {
-    if (blockedSlots.has(slotIndex)) {
-      return true;
-    }
-  }
-
-  return false;
-};
-
-const buildBookingMessage = ({ siteSettings, selectedDate, slotDetails, values }) => {
+const buildBookingMessage = ({ siteSettings, selectedDate, values }) => {
   const lines = [
     `Hello ${siteSettings.venueName}, I would like to request a booking.`,
     `Date: ${formatLongDate(selectedDate)}`,
-    `Time: ${slotDetails.startTime} - ${slotDetails.endTime} (${slotDetails.durationHours} hrs)`,
+    `Booking window: ${FIXED_BOOKING_START} - ${FIXED_BOOKING_END}`,
     `Name: ${values.name}`,
     `Phone: ${values.phone}`,
     `Event Type: ${values.eventType || "Other"}`,
@@ -267,7 +173,7 @@ const calendarModule = {
         1
       );
       this.state.selectedDate = null;
-      slotsModule.resetSelection(this.state);
+      selectionModule.render(this.state);
       void this.loadAvailability();
     });
 
@@ -278,7 +184,7 @@ const calendarModule = {
         1
       );
       this.state.selectedDate = null;
-      slotsModule.resetSelection(this.state);
+      selectionModule.render(this.state);
       void this.loadAvailability();
     });
 
@@ -299,13 +205,7 @@ const calendarModule = {
       return "booked";
     }
 
-    const blockedSlots = this.state.blockedSlotsByDate.get(dateKey) ?? new Set();
-
-    if (!blockedSlots.size) {
-      return "available";
-    }
-
-    return hasValidSlotWindow(blockedSlots) ? "partial" : "booked";
+    return "available";
   },
 
   getCalendarMessage() {
@@ -314,7 +214,7 @@ const calendarModule = {
     }
 
     if (this.state.bookingAvailabilityState === "loading") {
-      return "Loading live availability...";
+      return "Loading confirmed booking dates...";
     }
 
     if (this.state.bookingAvailabilityState === "unavailable") {
@@ -357,10 +257,13 @@ const calendarModule = {
       }
 
       this.state.bookedDateSet = new Set(result.bookedDates);
-      this.state.bookingRequests = result.bookingRequests;
-      this.state.blockedSlotsByDate = buildBlockedSlotsByDate(result.bookingRequests);
       this.state.bookingAvailabilityErrorMessage = "";
       this.state.bookingAvailabilityState = "ready";
+
+      if (this.state.selectedDate && this.state.bookedDateSet.has(this.state.selectedDate)) {
+        this.state.selectedDate = null;
+      }
+
       this.render();
     } catch (error) {
       if (activeRequest !== this.requestSequence) {
@@ -368,10 +271,7 @@ const calendarModule = {
       }
 
       this.state.bookedDateSet = new Set();
-      this.state.bookingRequests = [];
-      this.state.blockedSlotsByDate = new Map();
       this.state.selectedDate = null;
-      slotsModule.resetSelection(this.state);
       this.state.bookingAvailabilityErrorMessage = describeSupabaseError(
         error,
         "Live availability is temporarily unavailable. Please retry or contact Diamond directly."
@@ -458,11 +358,7 @@ const calendarModule = {
       } else if (dayState === "booked") {
         button.classList.add("is-booked");
         indicator.classList.add("booking-calendar-day__indicator--booked");
-        meta.textContent = "Full";
-      } else if (dayState === "partial") {
-        button.classList.add("is-partial");
-        indicator.classList.add("booking-calendar-day__indicator--partial");
-        meta.textContent = "Partial";
+        meta.textContent = "Booked";
       } else {
         button.classList.add("is-available");
         indicator.classList.add("booking-calendar-day__indicator--available");
@@ -476,7 +372,7 @@ const calendarModule = {
 
       button.setAttribute(
         "aria-label",
-        `${dayState === "unavailable" ? "Live availability unavailable for" : dayState === "booked" ? "Fully booked" : dayState === "partial" ? "Partially booked" : "Available"} ${formatLongDate(cellKey)}`
+        `${dayState === "booked" ? "Confirmed booking on" : dayState === "unavailable" ? "Live availability unavailable for" : "Available"} ${formatLongDate(cellKey)}`
       );
 
       if (!isSelectable) {
@@ -484,7 +380,6 @@ const calendarModule = {
       } else {
         button.addEventListener("click", () => {
           this.state.selectedDate = cellKey;
-          slotsModule.resetSelection(this.state);
           this.render();
         });
       }
@@ -495,115 +390,32 @@ const calendarModule = {
 
     this.calendarDays.replaceChildren(...dayButtons);
     this.calendarNote.textContent = this.getCalendarMessage();
+
     if (this.calendarRetry) {
       this.calendarRetry.hidden = this.state.bookingAvailabilityState !== "unavailable";
       this.calendarRetry.disabled = this.state.bookingAvailabilityState === "loading";
     }
-    slotsModule.render(this.state);
+
+    selectionModule.render(this.state);
     submitModule.syncAvailabilityState?.();
   }
 };
 
-const slotsModule = {
+const selectionModule = {
   init(state) {
     this.state = state;
-    this.slotGrid = document.getElementById("booking-slot-grid");
-    this.slotSummary = document.getElementById("booking-slot-summary");
-    this.slotNote = document.getElementById("booking-slot-note");
+    this.selectionGrid = document.getElementById("booking-slot-grid");
+    this.selectionSummary = document.getElementById("booking-slot-summary");
+    this.selectionNote = document.getElementById("booking-slot-note");
     this.render();
   },
 
-  resetSelection(state = this.state) {
-    if (!state) {
-      return;
-    }
-
-    state.selectedSlotStartIndex = null;
-    state.selectedSlotEndIndex = null;
-  },
-
-  getBlockedSlots() {
-    if (!this.state?.selectedDate) {
-      return new Set();
-    }
-
-    return this.state.blockedSlotsByDate.get(this.state.selectedDate) ?? new Set();
-  },
-
-  canStartAt(slotIndex) {
-    if (
-      !this.state?.selectedDate ||
-      this.state.siteSettings.hallStatusOpen === false ||
-      this.state.isSubmitting === true ||
-      this.state.bookingAvailabilityState !== "ready"
-    ) {
-      return false;
-    }
-
-    const latestStartIndex = BOOKING_SLOT_DEFINITIONS.length - BOOKING_MINIMUM_HOURS;
-
-    if (slotIndex < 0 || slotIndex > latestStartIndex) {
-      return false;
-    }
-
-    const blockedSlots = this.getBlockedSlots();
-
-    for (let index = slotIndex; index < slotIndex + BOOKING_MINIMUM_HOURS; index += 1) {
-      if (blockedSlots.has(index)) {
-        return false;
-      }
-    }
-
-    return true;
-  },
-
-  canExtendTo(slotIndex) {
-    if (
-      !Number.isInteger(this.state?.selectedSlotStartIndex) ||
-      !Number.isInteger(this.state?.selectedSlotEndIndex) ||
-      this.state.isSubmitting === true ||
-      this.state.bookingAvailabilityState !== "ready"
-    ) {
-      return false;
-    }
-
-    if (slotIndex <= this.state.selectedSlotEndIndex || slotIndex >= BOOKING_SLOT_DEFINITIONS.length) {
-      return false;
-    }
-
-    const blockedSlots = this.getBlockedSlots();
-
-    for (let index = this.state.selectedSlotEndIndex + 1; index <= slotIndex; index += 1) {
-      if (blockedSlots.has(index)) {
-        return false;
-      }
-    }
-
-    return true;
-  },
-
-  setSelectionFromStart(slotIndex) {
-    this.state.selectedSlotStartIndex = slotIndex;
-    this.state.selectedSlotEndIndex = slotIndex + BOOKING_MINIMUM_HOURS - 1;
-  },
-
-  extendSelectionTo(slotIndex) {
-    this.state.selectedSlotEndIndex = slotIndex;
-  },
-
   getSummaryText() {
-    const startIndex = this.state?.selectedSlotStartIndex;
-    const endIndex = this.state?.selectedSlotEndIndex;
-
-    if (!Number.isInteger(startIndex) || !Number.isInteger(endIndex)) {
-      return "Selected: --:-- \u2013 --:-- (0 hrs)";
+    if (!this.state.selectedDate) {
+      return "Selected date: No date selected";
     }
 
-    const startSlot = BOOKING_SLOT_DEFINITIONS[startIndex];
-    const endSlot = BOOKING_SLOT_DEFINITIONS[endIndex];
-    const durationHours = getSlotRangeHours(startIndex, endIndex);
-
-    return `Selected: ${startSlot.start} \u2013 ${endSlot.end} (${durationHours} hrs)`;
+    return `Selected date: ${formatLongDate(this.state.selectedDate)}`;
   },
 
   getNoteText() {
@@ -611,45 +423,23 @@ const slotsModule = {
       return "Live availability is temporarily unavailable. Please retry or contact Diamond Banquet Hall directly.";
     }
 
-    if (!this.state?.selectedDate) {
-      return "Choose an available date to unlock the 06:00 to 12:00 slot window.";
+    if (this.state.siteSettings.hallStatusOpen === false) {
+      return "Hall bookings are temporarily paused. Please contact Diamond Banquet Hall directly.";
     }
 
     if (this.state.isSubmitting === true) {
       return "Submitting your booking request. Please wait...";
     }
 
-    if (this.state.siteSettings.hallStatusOpen === false) {
-      return "Hall bookings are temporarily paused. Please contact Diamond Banquet Hall directly.";
-    }
-
     if (this.state.bookingAvailabilityState === "loading") {
-      return "Checking open time slots for the selected date...";
+      return "Checking confirmed booking dates for the selected month...";
     }
 
-    if (
-      Number.isInteger(this.state.selectedSlotStartIndex) &&
-      Number.isInteger(this.state.selectedSlotEndIndex)
-    ) {
-      return "Minimum 4 hours selected. Click a later free slot to extend your booking up to 12:00.";
+    if (!this.state.selectedDate) {
+      return "Choose an available date to prepare your request. Pending requests stay open until the Diamond team confirms them.";
     }
 
-    return `Selected date: ${formatLongDate(
-      this.state.selectedDate
-    )}. Click a start time to auto-select your minimum 4-hour booking.`;
-  },
-
-  handleSlotClick(slotIndex) {
-    if (this.canExtendTo(slotIndex)) {
-      this.extendSelectionTo(slotIndex);
-      this.render();
-      return;
-    }
-
-    if (this.canStartAt(slotIndex)) {
-      this.setSelectionFromStart(slotIndex);
-      this.render();
-    }
+    return `Your request will be submitted for ${formatLongDate(this.state.selectedDate)}. Pending requests do not reserve the date until the venue confirms them.`;
   },
 
   render(state = this.state) {
@@ -657,77 +447,47 @@ const slotsModule = {
       this.state = state;
     }
 
-    if (!this.slotGrid || !this.slotSummary || !this.slotNote) {
+    if (!this.selectionGrid || !this.selectionSummary || !this.selectionNote) {
       return;
     }
 
-    const blockedSlots = this.getBlockedSlots();
-    const latestStartIndex = BOOKING_SLOT_DEFINITIONS.length - BOOKING_MINIMUM_HOURS;
-    const selectedStartIndex = this.state.selectedSlotStartIndex;
-    const selectedEndIndex = this.state.selectedSlotEndIndex;
-    const slotButtons = BOOKING_SLOT_DEFINITIONS.map((slot) => {
-      const button = createElement("button", "booking-slot");
-      const slotTime = createElement("span", "booking-slot__time", slot.label);
-      const slotState = createElement("span", "booking-slot__state");
-      const isBlocked = blockedSlots.has(slot.index);
-      const isSelected =
-        Number.isInteger(selectedStartIndex) &&
-        Number.isInteger(selectedEndIndex) &&
-        slot.index >= selectedStartIndex &&
-        slot.index <= selectedEndIndex;
-      const canStart = this.canStartAt(slot.index);
-      const canExtend = this.canExtendTo(slot.index);
-      const isInteractive = isSelected || canStart || canExtend;
+    const cards = [];
+    const selectedDateCard = createElement(
+      "article",
+      `booking-slot booking-slot--static ${this.state.selectedDate ? "is-selected" : "is-disabled"}`
+    );
+    const selectedDateTitle = createElement(
+      "span",
+      "booking-slot__time",
+      this.state.selectedDate ? formatLongDate(this.state.selectedDate) : "Choose an available date"
+    );
+    const selectedDateState = createElement(
+      "span",
+      "booking-slot__state",
+      this.state.selectedDate ? "Selected date" : "Awaiting selection"
+    );
 
-      button.type = "button";
-      button.dataset.slotIndex = String(slot.index);
+    selectedDateCard.append(selectedDateTitle, selectedDateState);
+    cards.push(selectedDateCard);
 
-      if (isBlocked) {
-        button.classList.add("is-blocked");
-        slotState.textContent = "Booked";
-        button.disabled = true;
-        button.title = "This slot is already booked.";
-      } else if (isSelected) {
-        button.classList.add("is-selected");
-        slotState.textContent = "Selected";
-        button.addEventListener("click", () => this.handleSlotClick(slot.index));
-      } else if (canExtend) {
-        button.classList.add("is-extendable");
-        slotState.textContent = "Extend";
-        button.addEventListener("click", () => this.handleSlotClick(slot.index));
-      } else if (canStart) {
-        button.classList.add("is-available");
-        slotState.textContent = slot.index <= latestStartIndex ? "Start" : "Open";
-        button.addEventListener("click", () => this.handleSlotClick(slot.index));
-      } else {
-        button.classList.add("is-disabled");
+    const windowCard = createElement("article", "booking-slot booking-slot--static is-available");
+    const windowTitle = createElement(
+      "span",
+      "booking-slot__time",
+      `${FIXED_BOOKING_START} - ${FIXED_BOOKING_END}`
+    );
+    const windowState = createElement(
+      "span",
+      "booking-slot__state",
+      "Standard request window"
+    );
 
-        if (!this.state.selectedDate) {
-          slotState.textContent = "Pick date";
-        } else if (this.state.bookingAvailabilityState === "unavailable") {
-          slotState.textContent = "Offline";
-        } else if (this.state.siteSettings.hallStatusOpen === false) {
-          slotState.textContent = "Paused";
-        } else if (slot.index > latestStartIndex && !Number.isInteger(selectedStartIndex)) {
-          slotState.textContent = "Need 4 hrs";
-        } else {
-          slotState.textContent = "Unavailable";
-        }
+    windowCard.append(windowTitle, windowState);
+    cards.push(windowCard);
 
-        button.disabled = true;
-      }
-
-      if (!isInteractive && !button.disabled) {
-        button.disabled = true;
-      }
-
-      button.append(slotTime, slotState);
-      return button;
-    });
-
-    this.slotGrid.replaceChildren(...slotButtons);
-    this.slotSummary.textContent = this.getSummaryText();
-    this.slotNote.textContent = this.getNoteText();
+    this.selectionGrid.replaceChildren(...cards);
+    this.selectionSummary.textContent = this.getSummaryText();
+    this.selectionNote.textContent = this.getNoteText();
   }
 };
 
@@ -797,12 +557,12 @@ const formModule = {
 
     this.state.formApi = {
       readValues: () => this.readValues(),
-      validateField: (fieldName) => this.validateField(fieldName),
       validateAll: () => this.validateAll(),
       setStatus: (message, tone) => this.setStatus(message, tone),
       clearStatus: () => this.clearStatus(),
       setDisabled: (isDisabled) => this.setDisabled(isDisabled),
-      focusStatus: () => this.focusStatus()
+      focusStatus: () => this.focusStatus(),
+      reset: () => this.reset()
     };
   },
 
@@ -988,11 +748,9 @@ const successModule = {
     this.close();
     this.state.formApi?.reset?.();
     this.state.selectedDate = null;
-    this.state.selectedSlotStartIndex = null;
-    this.state.selectedSlotEndIndex = null;
     this.state.lastSubmittedBooking = null;
     this.state.currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
+    selectionModule.render(this.state);
     await calendarModule.loadAvailability();
   }
 };
@@ -1021,8 +779,15 @@ const submitModule = {
     const isSubmitting = this.state.isSubmitting === true;
     const isAvailabilityLoading = this.state.bookingAvailabilityState === "loading";
     const isAvailabilityUnavailable = this.state.bookingAvailabilityState === "unavailable";
+    const isHallClosed = this.state.siteSettings.hallStatusOpen === false;
+    const hasSelectedDate = Boolean(this.state.selectedDate);
 
-    this.submitButton.disabled = isSubmitting || isAvailabilityLoading || isAvailabilityUnavailable;
+    this.submitButton.disabled =
+      isSubmitting ||
+      isAvailabilityLoading ||
+      isAvailabilityUnavailable ||
+      isHallClosed ||
+      !hasSelectedDate;
 
     if (this.submitButtonLabel) {
       if (isSubmitting) {
@@ -1031,6 +796,10 @@ const submitModule = {
         this.submitButtonLabel.textContent = "Loading Availability...";
       } else if (isAvailabilityUnavailable) {
         this.submitButtonLabel.textContent = "Availability Unavailable";
+      } else if (isHallClosed) {
+        this.submitButtonLabel.textContent = "Bookings Paused";
+      } else if (!hasSelectedDate) {
+        this.submitButtonLabel.textContent = "Select a Date First";
       } else {
         this.submitButtonLabel.textContent = this.defaultButtonLabel;
       }
@@ -1039,101 +808,76 @@ const submitModule = {
 
   setPendingState(isPending) {
     this.state.isSubmitting = isPending;
-    this.state.formApi?.setDisabled?.(isPending);
     this.form?.setAttribute("aria-busy", String(isPending));
-
-    if (!this.submitButton) {
-      calendarModule.render();
-      return;
-    }
-
-    this.submitButton.classList.toggle("is-pending", isPending);
-    this.syncAvailabilityState();
-
+    this.submitButton?.classList.toggle("is-pending", isPending);
+    this.state.formApi?.setDisabled?.(isPending);
     calendarModule.render();
+    selectionModule.render(this.state);
+    this.syncAvailabilityState();
   },
 
   async handleSubmit() {
-    const isValid = this.state.formApi?.validateAll?.() ?? false;
-    const slotDetails = getSelectedSlotDetails(this.state);
+    const values = this.state.formApi?.readValues?.() ?? {};
+    let whatsappWindow = null;
+    let shouldCloseWhatsAppWindow = false;
 
     if (!this.state.selectedDate) {
-      this.state.formApi?.setStatus?.("Please choose an available date.", "error");
+      this.state.formApi?.setStatus?.("Choose an available date before submitting.", "error");
       this.state.formApi?.focusStatus?.();
       return;
     }
 
-    if (!slotDetails) {
-      this.state.formApi?.setStatus?.("Please choose your booking time slots.", "error");
+    if (this.state.siteSettings.hallStatusOpen === false) {
+      this.state.formApi?.setStatus?.(
+        "Hall bookings are temporarily paused. Please contact Diamond Banquet Hall directly.",
+        "error"
+      );
       this.state.formApi?.focusStatus?.();
       return;
     }
 
-    if (!isValid) {
-      this.state.formApi?.setStatus?.("Please correct the highlighted fields.", "error");
+    if (!this.state.formApi?.validateAll?.()) {
+      this.state.formApi?.setStatus?.(
+        "Please review the highlighted fields before sending your booking request.",
+        "error"
+      );
       this.state.formApi?.focusStatus?.();
       return;
     }
 
-    const values = this.state.formApi?.readValues?.() ?? {};
-    const message = buildBookingMessage({
+    const bookingMessage = buildBookingMessage({
       siteSettings: this.state.siteSettings,
       selectedDate: this.state.selectedDate,
-      slotDetails,
       values
     });
-    const whatsappHref = buildWhatsAppLink(this.state.siteSettings.whatsappHref, message);
-    const whatsappWindow = window.open("", "_blank");
-    let shouldCloseWhatsAppWindow = true;
-
-    if (whatsappWindow) {
-      whatsappWindow.opener = null;
-    }
-
-    this.setPendingState(true);
-    this.state.formApi?.setStatus?.("Checking your slot and sending your request...", "default");
+    const whatsappHref = buildWhatsAppLink(this.state.siteSettings.whatsappHref, bookingMessage);
 
     try {
-      const latestAvailability = await runWithSingleRetry(() =>
-        fetchBookingAvailabilityWindow({
-          startDate: this.state.selectedDate,
-          endDate: this.state.selectedDate
+      whatsappWindow = window.open("", "_blank", "noopener,noreferrer");
+      shouldCloseWhatsAppWindow = Boolean(whatsappWindow);
+    } catch (_error) {
+      whatsappWindow = null;
+      shouldCloseWhatsAppWindow = false;
+    }
+
+    this.state.formApi?.clearStatus?.();
+    this.setPendingState(true);
+
+    try {
+      const result = await runWithSingleRetry(() =>
+        submitBookingRequest({
+          eventDate: this.state.selectedDate,
+          customerName: values.name,
+          customerPhone: values.phone,
+          customerEmail: values.email,
+          organisation: values.organisation,
+          eventType: values.eventType || "Other",
+          attendeeCount: values.attendees,
+          notes: values.notes,
+          enquiryMessage: values.notes || null
         })
       );
-      const latestBookedDateSet = new Set(latestAvailability.bookedDates);
-      const latestBlockedSlotsByDate = buildBlockedSlotsByDate(latestAvailability.bookingRequests);
-      const latestBlockedSlots = latestBlockedSlotsByDate.get(this.state.selectedDate) ?? new Set();
-      const hasFreshConflict =
-        latestBookedDateSet.has(this.state.selectedDate) ||
-        selectionHasSlotConflict(latestBlockedSlots, slotDetails);
 
-      if (hasFreshConflict) {
-        this.state.bookedDateSet = latestBookedDateSet;
-        this.state.bookingRequests = latestAvailability.bookingRequests;
-        this.state.blockedSlotsByDate = latestBlockedSlotsByDate;
-        slotsModule.resetSelection(this.state);
-        calendarModule.render();
-        this.state.formApi?.setStatus?.(
-          "That slot was just booked. Please choose a different time.",
-          "error"
-        );
-        this.state.formApi?.focusStatus?.();
-        return;
-      }
-
-      const result = await submitBookingRequest({
-        eventDate: this.state.selectedDate,
-        startTime: slotDetails.startTime,
-        endTime: slotDetails.endTime,
-        customerName: values.name,
-        customerPhone: values.phone,
-        customerEmail: values.email,
-        organisation: values.organisation,
-        eventType: values.eventType || "Other",
-        attendeeCount: values.attendees,
-        notes: values.notes,
-        enquiryMessage: message
-      });
       let notificationWarning = "";
 
       try {
@@ -1142,8 +886,8 @@ const submitModule = {
           customerPhone: values.phone,
           customerEmail: values.email,
           eventDate: this.state.selectedDate,
-          startTime: slotDetails.startTime,
-          endTime: slotDetails.endTime,
+          startTime: FIXED_BOOKING_START,
+          endTime: FIXED_BOOKING_END,
           eventType: values.eventType || "Other",
           attendeeCount: values.attendees,
           notes: values.notes
@@ -1153,7 +897,7 @@ const submitModule = {
         notificationWarning = " Admin email notification could not be sent automatically.";
       }
 
-      this.state.lastSubmittedBooking = result.bookingRequest;
+      this.state.lastSubmittedBooking = result.booking;
       await calendarModule.loadAvailability();
 
       if (whatsappWindow) {
@@ -1182,6 +926,7 @@ const submitModule = {
       if (shouldCloseWhatsAppWindow && whatsappWindow && !whatsappWindow.closed) {
         whatsappWindow.close();
       }
+
       this.setPendingState(false);
     }
   }
@@ -1193,12 +938,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     siteSettings: { ...DEFAULT_SITE_SETTINGS },
     currentMonth: new Date(today.getFullYear(), today.getMonth(), 1),
     selectedDate: null,
-    selectedSlotStartIndex: null,
-    selectedSlotEndIndex: null,
     bookingAvailabilityState: "loading",
     bookedDateSet: new Set(),
-    bookingRequests: [],
-    blockedSlotsByDate: new Map(),
     lastSubmittedBooking: null,
     isSubmitting: false,
     bookingAvailabilityErrorMessage: ""
@@ -1251,7 +992,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.warn("Default booking page settings are being used.", error);
   }
 
-  slotsModule.init(state);
+  selectionModule.init(state);
   calendarModule.init(state);
   formModule.init(state);
   successModule.init(state);

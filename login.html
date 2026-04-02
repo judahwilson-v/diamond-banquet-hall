@@ -20,19 +20,19 @@
           <p class="admin-login__eyebrow">Diamond - Admin Portal</p>
           <h1>Sign in to the administrative workspace.</h1>
           <p class="admin-login__copy">
-            Use your assigned name and password to access bookings, enquiries, reviews,
+            Use your allowlisted admin email and password to access bookings, enquiries, reviews,
             and site controls.
           </p>
 
           <form id="login-form" class="admin-form" novalidate>
             <label class="admin-field">
-              <span>Name</span>
+              <span>Email</span>
               <input
-                id="login-username"
-                type="text"
-                aria-label="Name"
-                autocomplete="username"
-                placeholder="Enter your assigned name"
+                id="login-email"
+                type="email"
+                aria-label="Email"
+                autocomplete="email"
+                placeholder="Enter your admin email"
               />
             </label>
 
@@ -47,14 +47,14 @@
               />
             </label>
 
-            <button class="admin-button admin-button--primary" type="submit">Login</button>
+            <button class="admin-button admin-button--primary" type="submit">Sign In</button>
             <p class="admin-status" id="login-status" aria-live="polite"></p>
           </form>
         </div>
       </section>
     </main>
 
-    <script src="./js/runtime-config.js"></script>
-    <script type="module" src="./js/login.js"></script>
+    <script src="/js/runtime-config.js"></script>
+    <script type="module" src="/js/login.js"></script>
   </body>
 </html>

@@ -1,38 +1,44 @@
-import { describeSupabaseError, getCurrentSession, signInAdmin } from "./site-data.js";
-import { SUPABASE_CONFIG_ERROR } from "./supabase-config.js";
+import { describeSupabaseError, getCurrentSession, signInAdmin, signOutAdmin } from "./site-data.js";
+import { SUPABASE_CONFIG_ERROR, supabaseClient } from "./supabase-config.js";
 
-const userMap = {
-  judah: "judah@diamond.com",
-  empl: "empl@diamond.com"
-};
+const allowedAdmins = new Map([
+  ["judah@diamond.com", "super_admin"],
+  ["empl@diamond.com", "staff_admin"]
+]);
 
-const accessLevelByUsername = {
-  judah: "admin",
-  empl: "staff"
-};
+const normalizeEmail = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
 
-const getUsernameForEmail = (email) =>
-  Object.entries(userMap).find(([, mappedEmail]) => mappedEmail === email)?.[0] ?? null;
+const resolveAdminAccess = async (email) => {
+  const normalizedEmail = normalizeEmail(email);
 
-const setRoleSession = (username) => {
-  const normalizedUsername = String(username ?? "").trim().toLowerCase();
-  const email = userMap[normalizedUsername];
-  const accessLevel = accessLevelByUsername[normalizedUsername];
-
-  if (!email || !accessLevel) {
-    return;
+  if (!allowedAdmins.has(normalizedEmail)) {
+    return null;
   }
 
-  sessionStorage.setItem("diamond_admin_role", normalizedUsername);
-  sessionStorage.setItem("diamond_admin_username", normalizedUsername);
-  sessionStorage.setItem("diamond_admin_email", email);
-  sessionStorage.setItem("role", accessLevel);
+  const { data, error } = await supabaseClient
+    .from("admin_users")
+    .select("email, role")
+    .eq("email", normalizedEmail)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return data;
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
   const loginForm = document.getElementById("login-form");
   const loginCard = document.getElementById("login-card");
-  const usernameInput = document.getElementById("login-username");
+  const emailInput = document.getElementById("login-email");
   const passwordInput = document.getElementById("login-password");
   const loginStatus = document.getElementById("login-status");
   const submitButton = loginForm?.querySelector('button[type="submit"]');
@@ -91,7 +97,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     loginCard?.classList.remove("is-shaking");
     void loginCard?.offsetWidth;
     loginCard?.classList.add("is-shaking");
-    usernameInput?.classList.add("is-error");
+    emailInput?.classList.add("is-error");
     passwordInput?.classList.add("is-error");
     shakeTimer = window.setTimeout(() => {
       loginCard?.classList.remove("is-shaking");
@@ -100,7 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const clearErrorState = () => {
     loginCard?.classList.remove("is-shaking");
-    usernameInput?.classList.remove("is-error");
+    emailInput?.classList.remove("is-error");
     passwordInput?.classList.remove("is-error");
   };
 
@@ -123,13 +129,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const session = await getCurrentSession();
-    const email = session?.user?.email ?? "";
-    const existingUsername = getUsernameForEmail(email);
+    const email = normalizeEmail(session?.user?.email);
 
-    if (existingUsername) {
-      setRoleSession(existingUsername);
-      window.location.replace("admin.html");
-      return;
+    if (email) {
+      const adminAccess = await resolveAdminAccess(email);
+
+      if (adminAccess) {
+        window.location.replace("admin.html");
+        return;
+      }
+
+      await signOutAdmin();
     }
   } catch (_error) {
     // Keep the login form visible if session lookup fails.
@@ -145,19 +155,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       submitButton.textContent = "Authenticating...";
     }
 
-    const username = String(usernameInput?.value ?? "").trim().toLowerCase();
+    const email = normalizeEmail(emailInput?.value);
     const password = String(passwordInput?.value ?? "");
-    const email = userMap[username];
 
-    if (!email) {
+    if (!allowedAdmins.has(email)) {
       showErrorState();
       passwordInput.value = "";
-      setStatus("That name is not authorized for this admin portal.", "error");
-      pushToast("That name is not authorized for this admin portal.", "error");
+      setStatus("This email is not allowlisted for the admin portal.", "error");
+      pushToast("This email is not allowlisted for the admin portal.", "error");
+
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.textContent = "Login";
+        submitButton.textContent = "Sign In";
       }
+
       return;
     }
 
@@ -166,26 +177,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       passwordInput.value = "";
       setStatus("Enter your password to continue.", "error");
       pushToast("Enter your password to continue.", "error");
+
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.textContent = "Login";
+        submitButton.textContent = "Sign In";
       }
+
       return;
     }
 
     try {
-      const data = await signInAdmin(email, password);
-      setRoleSession(username);
+      const session = await signInAdmin(email, password);
+      const adminAccess = await resolveAdminAccess(email);
+
+      if (!session || !adminAccess) {
+        await signOutAdmin();
+        throw new Error("This account is not configured for admin access.");
+      }
+
       passwordInput.value = "";
       setStatus("");
       pushToast("Authentication successful.", "success");
-
-      if (data) {
-        window.location.replace("admin.html");
-        return;
-      }
-
-      throw new Error("No active session was returned after login.");
+      window.location.replace("admin.html");
     } catch (error) {
       console.error("[diamond-login] Unable to sign in.", error);
       showErrorState();
@@ -193,14 +206,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       const message = describeSupabaseError(error, "Unable to sign in.");
       setStatus(message, "error");
       pushToast(message, "error");
+
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.textContent = "Login";
+        submitButton.textContent = "Sign In";
       }
     }
   });
 
-  [usernameInput, passwordInput].forEach((field) => {
+  [emailInput, passwordInput].forEach((field) => {
     field?.addEventListener("input", clearErrorState);
   });
 });

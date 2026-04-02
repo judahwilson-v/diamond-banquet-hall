@@ -4,437 +4,533 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Diamond Banquet Hall Admin</title>
+    <meta
+      name="description"
+      content="Secure realtime booking operations portal for Diamond Banquet Hall administrators."
+    />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#090c12" />
+    <title>Diamond Banquet Hall Admin Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&amp;family=Playfair+Display:wght@300;400;700&amp;display=swap"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/admin.css" />
   </head>
   <body class="admin-body">
-    <main class="admin-shell admin-shell--dashboard admin-shell--pending" id="admin-shell">
-      <section class="admin-boot" id="admin-boot" aria-live="polite">
-        <div class="admin-login__card">
-          <p class="admin-login__eyebrow">Diamond Admin</p>
-          <h1>Checking admin access...</h1>
-          <p class="admin-login__copy" id="admin-boot-status">
-            If this page stays here, the admin session check or a JavaScript module did not finish.
+    <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="admin-loading-overlay" id="admin-loading-overlay" aria-live="polite">
+      <div class="admin-loading-panel">
+        <div class="admin-spinner" aria-hidden="true"></div>
+        <p class="admin-loading-panel__eyebrow">Diamond Admin</p>
+        <h1 class="admin-loading-panel__title">Preparing your workspace</h1>
+        <p class="admin-loading-panel__copy" id="admin-loading-text">
+          Checking your session and loading the shared Supabase workspace.
+        </p>
+        <div class="admin-loading-panel__actions" id="admin-loading-actions" hidden>
+          <a class="admin-button admin-button--secondary" href="login.html">Back to Login</a>
+          <button class="admin-button admin-button--primary" id="admin-retry" type="button">
+            Retry
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-modal-layer" id="admin-modal-layer" hidden>
+      <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+        <div class="admin-modal__header">
+          <p class="admin-modal__eyebrow" id="admin-modal-eyebrow">Booking</p>
+          <button class="admin-modal__close" id="admin-modal-close" type="button" aria-label="Close dialog">
+            ×
+          </button>
+        </div>
+
+        <h3 id="admin-modal-title">Edit booking</h3>
+        <p class="admin-modal__copy" id="admin-modal-copy">
+          Update the booking details and save them to the live system.
+        </p>
+
+        <form class="admin-form" id="admin-booking-form" hidden novalidate>
+          <div class="admin-form-grid">
+            <label class="admin-field" id="booking-modal-name-field" for="booking-modal-name">
+              <span>Name</span>
+              <input id="booking-modal-name" name="customerName" type="text" autocomplete="name" />
+            </label>
+
+            <label class="admin-field" id="booking-modal-email-field" for="booking-modal-email">
+              <span>Email</span>
+              <input id="booking-modal-email" name="customerEmail" type="email" autocomplete="email" />
+            </label>
+
+            <label class="admin-field" for="booking-modal-date">
+              <span>Event Date</span>
+              <input id="booking-modal-date" name="eventDate" type="date" required />
+            </label>
+
+            <label class="admin-field" for="booking-modal-guests">
+              <span>Guests</span>
+              <input id="booking-modal-guests" name="guestCount" type="number" min="1" inputmode="numeric" />
+            </label>
+
+            <label class="admin-field admin-field--full" for="booking-modal-status">
+              <span>Status</span>
+              <select id="booking-modal-status" name="status" required>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="admin-check" id="booking-override-row" hidden>
+            <input id="booking-override-conflict" name="overrideConflict" type="checkbox" />
+            <span>Override an existing confirmed booking on this date</span>
+          </label>
+
+          <p class="admin-status" id="admin-booking-form-status" aria-live="polite"></p>
+
+          <div class="admin-modal__actions">
+            <button class="admin-button admin-button--secondary" id="admin-modal-cancel" type="button">
+              Cancel
+            </button>
+            <button class="admin-button admin-button--primary" id="admin-booking-save" type="submit">
+              Save Changes
+            </button>
+          </div>
+        </form>
+
+        <div class="admin-confirm-panel" id="admin-confirm-panel" hidden>
+          <p class="admin-confirm-panel__warning" id="admin-confirm-warning">
+            This action cannot be undone.
           </p>
-          <p class="admin-note admin-note--inline">
-            First-time setup needs the Supabase tables from <code>supabase/setup.sql</code> and
-            admin users created in Supabase Auth.
-          </p>
-          <div class="admin-actions">
-            <a class="admin-button admin-button--secondary" href="login.html">Go to Login</a>
-            <button class="admin-button admin-button--gold" id="admin-boot-retry" type="button">
-              Retry Check
+
+          <div class="admin-modal__actions">
+            <button class="admin-button admin-button--secondary" id="admin-confirm-cancel" type="button">
+              Cancel
+            </button>
+            <button class="admin-button admin-button--danger" id="admin-confirm-accept" type="button">
+              Confirm
             </button>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
 
-      <section class="admin-dashboard" id="admin-dashboard" hidden>
-        <header class="admin-header">
-          <div>
-            <p class="admin-header__eyebrow">Diamond Admin</p>
-            <h1>Control Center</h1>
-            <p class="admin-header__meta" id="admin-user-email"></p>
-            <p class="admin-header__role" id="admin-user-role"></p>
-          </div>
-          <button class="admin-button admin-button--secondary" id="admin-logout" type="button">
-            Logout
+    <main class="admin-app" id="admin-app" hidden>
+      <aside class="admin-sidebar" aria-label="Admin navigation">
+        <div class="admin-sidebar__brand">
+          <p class="admin-sidebar__eyebrow">Diamond Banquet Hall</p>
+          <h1>Admin Portal</h1>
+          <p class="admin-sidebar__copy">
+            Shared Supabase control room for bookings, enquiries, and venue settings.
+          </p>
+        </div>
+
+        <nav class="admin-nav" aria-label="Sections">
+          <button
+            class="admin-nav__button"
+            type="button"
+            data-view="dashboard"
+            data-title="Dashboard"
+            data-subtitle="Monitor live booking pressure, confirmed dates, and enquiry activity."
+          >
+            Dashboard
           </button>
+          <button
+            class="admin-nav__button is-active"
+            type="button"
+            data-view="bookings"
+            data-title="Bookings"
+            data-subtitle="Filter the live queue, approve or cancel requests, and edit protected records safely."
+          >
+            Bookings
+          </button>
+          <button
+            class="admin-nav__button"
+            type="button"
+            data-view="settings"
+            data-title="Settings"
+            data-subtitle="Manage pricing, inspect connection health, and update venue controls by role."
+          >
+            Settings
+          </button>
+        </nav>
+
+        <div class="admin-sidebar__footer">
+          <p class="admin-sidebar__label">Live Sync</p>
+          <p class="admin-sidebar__status" id="sidebar-sync-status">Connecting...</p>
+          <p class="admin-sidebar__hint" id="sidebar-sync-note">
+            Waiting for bookings, enquiries, and settings channels.
+          </p>
+        </div>
+      </aside>
+
+      <div class="admin-stage">
+        <header class="admin-header">
+          <div class="admin-header__copy">
+            <p class="admin-header__eyebrow" id="admin-header-eyebrow">Bookings</p>
+            <h2 id="admin-page-title">Bookings</h2>
+            <p id="admin-page-subtitle">
+              Filter the live queue, approve or cancel requests, and edit protected records safely.
+            </p>
+          </div>
+
+          <div class="admin-header__actions">
+            <div class="admin-user-pill">
+              <span class="admin-user-pill__label">Signed in</span>
+              <strong id="admin-user-email">--</strong>
+            </div>
+            <div class="admin-user-pill admin-user-pill--role">
+              <span class="admin-user-pill__label">Role</span>
+              <strong id="admin-user-role">--</strong>
+            </div>
+            <button class="admin-button admin-button--secondary" id="admin-logout" type="button">
+              Logout
+            </button>
+          </div>
         </header>
 
-        <section class="admin-stats" aria-label="Venue stats">
-          <article class="admin-stat">
-            <p class="admin-stat__label">Total Confirmed Bookings</p>
-            <p class="admin-stat__value" id="stat-bookings-count">0</p>
-            <p class="admin-stat__note" id="stat-bookings-note">Live count from the bookings table.</p>
-          </article>
-          <article class="admin-stat">
-            <p class="admin-stat__label">Pending Inquiries</p>
-            <p class="admin-stat__value" id="stat-enquiries-count">0</p>
-            <p class="admin-stat__note">New enquiries awaiting follow-up.</p>
-          </article>
-          <article class="admin-stat admin-stat--toggle">
-            <div class="admin-stat__row">
-              <div>
-                <p class="admin-stat__label">Hall Status</p>
-                <p class="admin-stat__note" id="hall-status-text">Open for bookings</p>
+        <section class="admin-view" id="view-dashboard" hidden aria-labelledby="admin-page-title">
+          <div class="admin-kpi-grid" aria-label="Booking overview">
+            <article class="admin-kpi">
+              <p class="admin-kpi__label">Total Records</p>
+              <p class="admin-kpi__value" id="kpi-total">0</p>
+              <p class="admin-kpi__meta">All booking records in the shared project.</p>
+            </article>
+            <article class="admin-kpi">
+              <p class="admin-kpi__label">Pending</p>
+              <p class="admin-kpi__value" id="kpi-pending">0</p>
+              <p class="admin-kpi__meta">Requests waiting for a manual decision.</p>
+            </article>
+            <article class="admin-kpi">
+              <p class="admin-kpi__label">Confirmed</p>
+              <p class="admin-kpi__value" id="kpi-confirmed">0</p>
+              <p class="admin-kpi__meta">Dates currently blocking public availability.</p>
+            </article>
+            <article class="admin-kpi">
+              <p class="admin-kpi__label">Cancelled</p>
+              <p class="admin-kpi__value" id="kpi-cancelled">0</p>
+              <p class="admin-kpi__meta">Requests released back to the calendar.</p>
+            </article>
+          </div>
+
+          <div class="admin-split-panel">
+            <section class="admin-surface">
+              <div class="admin-surface__header">
+                <div>
+                  <p class="admin-surface__eyebrow">Operational Outlook</p>
+                  <h3>Decision queue</h3>
+                </div>
               </div>
-              <label class="toggle-switch" for="hall-status-toggle" aria-label="Toggle hall status">
-                <input id="hall-status-toggle" type="checkbox" checked />
-                <span class="toggle-switch__track">
-                  <span class="toggle-switch__thumb"></span>
-                </span>
-              </label>
+              <p class="admin-summary" id="dashboard-summary">
+                Live totals will appear once the bookings feed is loaded.
+              </p>
+            </section>
+
+            <section class="admin-surface">
+              <div class="admin-surface__header">
+                <div>
+                  <p class="admin-surface__eyebrow">Forward Schedule</p>
+                  <h3>Next confirmed date</h3>
+                </div>
+              </div>
+              <p class="admin-summary" id="dashboard-next-booking">
+                No confirmed bookings are scheduled yet.
+              </p>
+            </section>
+          </div>
+
+          <section class="admin-surface admin-surface--table" id="dashboard-enquiries-surface" hidden>
+            <div class="admin-surface__header">
+              <div>
+                <p class="admin-surface__eyebrow">Enquiries</p>
+                <h3>Recent enquiry queue</h3>
+              </div>
             </div>
-          </article>
+
+            <p class="admin-surface__caption" id="dashboard-enquiries-summary">
+              Super admin visibility for live enquiry follow-up.
+            </p>
+
+            <div class="admin-empty-state" id="dashboard-enquiries-empty" hidden>
+              <h3>No enquiries found</h3>
+              <p>New public enquiries will appear here in real time.</p>
+            </div>
+
+            <div class="admin-table-wrap" id="dashboard-enquiries-wrap">
+              <table class="admin-table" aria-label="Enquiries table">
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Message</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-enquiries-body"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
 
-        <div class="admin-layout">
-          <aside class="admin-sidebar" aria-label="Admin navigation">
-            <p class="admin-sidebar__eyebrow">Workspace</p>
-            <div class="admin-tabs" role="tablist" aria-label="Admin sections" aria-orientation="vertical">
-              <button
-                class="admin-tab is-active"
-                id="bookings-tab"
-                type="button"
-                data-tab-target="bookings"
-                role="tab"
-                aria-selected="true"
-                aria-controls="tab-bookings"
-                tabindex="0"
-              >
-                Bookings
-              </button>
-              <button
-                class="admin-tab"
-                id="leads-tab"
-                type="button"
-                data-tab-target="leads"
-                role="tab"
-                aria-selected="false"
-                aria-controls="tab-leads"
-                tabindex="-1"
-              >
-                Leads
-              </button>
-              <button
-                class="admin-tab"
-                id="reviews-tab"
-                type="button"
-                data-tab-target="reviews"
-                role="tab"
-                aria-selected="false"
-                aria-controls="tab-reviews"
-                tabindex="-1"
-              >
-                Reviews
-              </button>
-              <button
-                class="admin-tab"
-                id="settings-tab"
-                type="button"
-                data-tab-target="settings"
-                role="tab"
-                aria-selected="false"
-                aria-controls="tab-settings"
-                tabindex="-1"
-              >
-                Master Settings
+        <section class="admin-view is-active" id="view-bookings" aria-labelledby="admin-page-title">
+          <section class="admin-surface admin-surface--table">
+            <div class="admin-surface__header">
+              <div>
+                <p class="admin-surface__eyebrow">Bookings Feed</p>
+                <h3>Realtime booking management</h3>
+              </div>
+              <button class="admin-button admin-button--primary" id="admin-refresh" type="button">
+                Refresh
               </button>
             </div>
-          </aside>
 
-          <section class="admin-content">
-            <div class="admin-banner" id="admin-banner" hidden>
-              <p class="admin-status" id="admin-banner-status" aria-live="polite"></p>
+            <div class="admin-toolbar" aria-label="Booking filters">
+              <label class="admin-field admin-field--compact" for="booking-search">
+                <span>Search</span>
+                <input
+                  id="booking-search"
+                  type="search"
+                  autocomplete="off"
+                  placeholder="Search by customer name or email"
+                />
+              </label>
+
+              <label class="admin-field admin-field--compact" for="booking-status-filter">
+                <span>Status</span>
+                <select id="booking-status-filter">
+                  <option value="all">All</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </label>
+
+              <label class="admin-field admin-field--compact" for="booking-specific-date">
+                <span>Specific Date</span>
+                <input id="booking-specific-date" type="date" />
+              </label>
+
+              <label class="admin-field admin-field--compact" for="booking-start-date">
+                <span>Start Date</span>
+                <input id="booking-start-date" type="date" />
+              </label>
+
+              <label class="admin-field admin-field--compact" for="booking-end-date">
+                <span>End Date</span>
+                <input id="booking-end-date" type="date" />
+              </label>
+
+              <div class="admin-toolbar__actions">
+                <button class="admin-button admin-button--secondary" id="booking-clear-filters" type="button">
+                  Clear Filters
+                </button>
+              </div>
             </div>
 
-            <section class="admin-panel is-active" id="tab-bookings" role="tabpanel" aria-labelledby="bookings-tab">
-              <div class="admin-panel__header">
+            <p class="admin-filter-summary" id="admin-filter-summary">
+              Showing 0 of 0 bookings.
+            </p>
+
+            <div class="admin-loading-strip" id="admin-fetch-state" hidden>
+              <div class="admin-spinner admin-spinner--small" aria-hidden="true"></div>
+              <span>Loading bookings...</span>
+            </div>
+
+            <div class="admin-empty-state" id="admin-empty-state" hidden>
+              <h3>No bookings found</h3>
+              <p>Adjust your filters or wait for new booking requests to arrive.</p>
+            </div>
+
+            <div class="admin-table-wrap" id="admin-table-wrap">
+              <table class="admin-table" aria-label="Bookings table">
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Guests</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="bookings-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="admin-view" id="view-settings" hidden aria-labelledby="admin-page-title">
+          <div class="admin-settings-grid">
+            <section class="admin-surface">
+              <div class="admin-surface__header">
                 <div>
-                  <p class="admin-panel__eyebrow">Bookings</p>
-                  <h2>Manage Booked Dates</h2>
-                </div>
-                <p class="admin-note">
-                  Bookings are written directly to Supabase and reflected in the public
-                  availability calendar.
-                </p>
-              </div>
-
-              <div class="admin-grid admin-grid--bookings">
-                <div class="admin-card">
-                  <label class="admin-field">
-                    <span>Live booked dates</span>
-                    <textarea
-                      id="booking-file-preview"
-                      aria-label="Live booked dates preview"
-                      readonly
-                    ></textarea>
-                  </label>
-
-                  <div class="admin-inline-form">
-                    <label class="admin-field">
-                      <span>Date</span>
-                      <input id="booking-date-input" type="date" aria-label="Booking date" />
-                    </label>
-                    <div class="admin-actions">
-                      <button class="admin-button admin-button--primary" id="mark-booked" type="button">
-                        Mark as Booked
-                      </button>
-                      <button class="admin-button admin-button--secondary" id="mark-available" type="button">
-                        Mark as Available
-                      </button>
-                      <button class="admin-button admin-button--gold" id="refresh-bookings" type="button">
-                        Refresh
-                      </button>
-                    </div>
-                  </div>
-
-                  <p class="admin-status" id="booking-status" aria-live="polite"></p>
-                </div>
-
-                <div class="admin-card">
-                  <div class="mini-calendar__header">
-                    <h3>Live Calendar Preview</h3>
-                    <div class="mini-calendar__controls">
-                      <button id="admin-calendar-prev" type="button" aria-label="Previous month">‹</button>
-                      <span id="admin-calendar-label"></span>
-                      <button id="admin-calendar-next" type="button" aria-label="Next month">›</button>
-                    </div>
-                  </div>
-                  <p class="admin-note admin-note--inline">
-                    Click any current-month date to toggle it between booked and available.
-                  </p>
-                  <p class="admin-note admin-note--inline" id="booking-request-summary">
-                    Pending slot requests for this month will appear here.
-                  </p>
-                  <div class="mini-calendar__weekdays" aria-hidden="true">
-                    <span>Sun</span>
-                    <span>Mon</span>
-                    <span>Tue</span>
-                    <span>Wed</span>
-                    <span>Thu</span>
-                    <span>Fri</span>
-                    <span>Sat</span>
-                  </div>
-                  <div class="mini-calendar__grid" id="admin-calendar-days"></div>
+                  <p class="admin-surface__eyebrow">Connection Profile</p>
+                  <h3>Portal status</h3>
                 </div>
               </div>
+
+              <dl class="admin-settings-list">
+                <div class="admin-settings-list__row">
+                  <dt>Session email</dt>
+                  <dd id="settings-session-email">--</dd>
+                </div>
+                <div class="admin-settings-list__row">
+                  <dt>Allowlist role</dt>
+                  <dd id="settings-session-role">--</dd>
+                </div>
+                <div class="admin-settings-list__row">
+                  <dt>Realtime status</dt>
+                  <dd id="settings-realtime-status">Connecting...</dd>
+                </div>
+                <div class="admin-settings-list__row">
+                  <dt>Last sync</dt>
+                  <dd id="settings-last-sync">Awaiting first fetch</dd>
+                </div>
+                <div class="admin-settings-list__row">
+                  <dt>Bookings in memory</dt>
+                  <dd id="settings-row-count">0</dd>
+                </div>
+                <div class="admin-settings-list__row" id="settings-enquiry-count-row" hidden>
+                  <dt>Enquiries in memory</dt>
+                  <dd id="settings-enquiry-count">0</dd>
+                </div>
+              </dl>
+
+              <p class="admin-settings-note">
+                Access is enforced through Supabase Auth, the `admin_users` allowlist, and database-level rules.
+              </p>
             </section>
 
-            <section class="admin-panel" id="tab-leads" role="tabpanel" aria-labelledby="leads-tab" hidden>
-              <div class="admin-panel__header">
+            <section class="admin-surface">
+              <div class="admin-surface__header">
                 <div>
-                  <p class="admin-panel__eyebrow">Leads</p>
-                  <h2>Inquiry Inbox</h2>
+                  <p class="admin-surface__eyebrow">Pricing Controls</p>
+                  <h3>Booking pricing</h3>
                 </div>
-                <p class="admin-note">
-                  Review live enquiries, follow up quickly, and keep inquiry statuses current.
-                </p>
               </div>
 
-              <div class="admin-card">
-                <div class="admin-list-header">
-                  <div>
-                    <h3>Live Enquiries</h3>
-                    <p class="admin-note admin-note--inline">
-                      Customer phone numbers are clickable for instant follow-up.
-                    </p>
-                  </div>
-                  <button class="admin-button admin-button--gold" id="refresh-leads" type="button">
-                    Refresh
+              <form class="admin-form" id="pricing-form" novalidate>
+                <div class="admin-form-grid">
+                  <label class="admin-field" for="settings-hall-price">
+                    <span>Hall Price</span>
+                    <input id="settings-hall-price" type="number" min="0" step="1" inputmode="numeric" required />
+                  </label>
+
+                  <label class="admin-field" for="settings-room-price">
+                    <span>Room Price</span>
+                    <input id="settings-room-price" type="number" min="0" step="1" inputmode="numeric" required />
+                  </label>
+
+                  <label class="admin-field admin-field--full" for="settings-room-count">
+                    <span>Room Count</span>
+                    <input id="settings-room-count" type="number" min="0" step="1" inputmode="numeric" required />
+                  </label>
+                </div>
+
+                <p class="admin-status" id="pricing-form-status" aria-live="polite"></p>
+
+                <div class="admin-action-stack">
+                  <button class="admin-button admin-button--primary" id="pricing-save-button" type="submit">
+                    Save Pricing
                   </button>
                 </div>
-
-                <p class="admin-status" id="leads-status" aria-live="polite"></p>
-                <div class="admin-table-wrap" id="admin-leads-table-wrap">
-                  <table class="admin-table" aria-label="Inquiry inbox table">
-                    <thead>
-                      <tr>
-                        <th>Customer</th>
-                        <th>Phone</th>
-                        <th>Message</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody id="admin-leads-body"></tbody>
-                  </table>
-                </div>
-                <div class="empty-state" id="admin-leads-empty" hidden>No new inquiries at the moment.</div>
-              </div>
-            </section>
-
-            <section class="admin-panel" id="tab-reviews" role="tabpanel" aria-labelledby="reviews-tab" hidden>
-              <div class="admin-panel__header">
-                <div>
-                  <p class="admin-panel__eyebrow">Reviews</p>
-                  <h2>Add a Customer Review</h2>
-                </div>
-                <p class="admin-note">
-                  Reviews are inserted directly into Supabase and appear on the public site
-                  after refresh.
-                </p>
-              </div>
-
-              <div class="admin-grid admin-grid--reviews">
-                <form id="review-form" class="admin-card admin-form-grid">
-                  <label class="admin-field">
-                    <span>Name</span>
-                    <input id="review-name" type="text" aria-label="Reviewer name" />
-                  </label>
-                  <label class="admin-field">
-                    <span>Event type</span>
-                    <select id="review-event" aria-label="Event type">
-                      <option value="Wedding">Wedding</option>
-                      <option value="Reception">Reception</option>
-                      <option value="Engagement">Engagement</option>
-                      <option value="Birthday">Birthday</option>
-                      <option value="Corporate">Corporate</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </label>
-                  <label class="admin-field">
-                    <span>Date label</span>
-                    <input id="review-date" type="text" aria-label="Review date label" placeholder="March 2025" />
-                  </label>
-                  <label class="admin-field admin-field--full">
-                    <span>Review text</span>
-                    <textarea id="review-text" aria-label="Review text"></textarea>
-                  </label>
-                  <div class="admin-actions">
-                    <button class="admin-button admin-button--primary" type="submit">Add Review</button>
-                    <button class="admin-button admin-button--gold" id="refresh-reviews" type="button">
-                      Refresh
-                    </button>
-                  </div>
-                  <p class="admin-status" id="reviews-status" aria-live="polite"></p>
-                </form>
-
-                <div class="admin-card">
-                  <h3>Current Reviews</h3>
-                  <div class="admin-review-list" id="admin-review-list"></div>
-                </div>
-              </div>
-            </section>
-
-            <section class="admin-panel" id="tab-settings" role="tabpanel" aria-labelledby="settings-tab" hidden>
-              <div class="admin-panel__header">
-                <div>
-                  <p class="admin-panel__eyebrow">Master Settings</p>
-                  <h2>Edit Site Content</h2>
-                </div>
-                <p class="admin-note">
-                  These values are written to the shared site settings row in Supabase.
-                </p>
-              </div>
-
-              <form id="site-settings-form" class="admin-card admin-form-grid">
-                <label class="admin-field">
-                  <span>Hall name</span>
-                  <input
-                    id="setting-venue-name"
-                    type="text"
-                    aria-label="Hall name"
-                    placeholder="Diamond Banquet Hall"
-                  />
-                </label>
-                <label class="admin-field">
-                  <span>Location label</span>
-                  <input
-                    id="setting-location-label"
-                    type="text"
-                    aria-label="Location label"
-                    placeholder="Allapra, Perumbavoor"
-                  />
-                </label>
-                <label class="admin-field">
-                  <span>Phone number</span>
-                  <input
-                    id="setting-phone"
-                    type="text"
-                    aria-label="Phone number"
-                    placeholder="+91 99476 81202"
-                  />
-                </label>
-                <label class="admin-field">
-                  <span>WhatsApp number</span>
-                  <input
-                    id="setting-whatsapp"
-                    type="text"
-                    aria-label="WhatsApp number"
-                    placeholder="+91 99476 81202"
-                  />
-                </label>
-                <label class="admin-field">
-                  <span>Instagram handle</span>
-                  <input
-                    id="setting-instagram"
-                    type="text"
-                    aria-label="Instagram handle"
-                    placeholder="@diamondhallallapra"
-                  />
-                </label>
-                <label class="admin-field">
-                  <span>Google Maps URL</span>
-                  <input
-                    id="setting-maps"
-                    type="url"
-                    aria-label="Google Maps URL"
-                    placeholder="https://maps.app.goo.gl/..."
-                  />
-                </label>
-                <label class="admin-field">
-                  <span>Hall pricing (₹ per 4 hours)</span>
-                  <input id="setting-hall-price" type="number" aria-label="Hall pricing" min="0" />
-                </label>
-                <label class="admin-field">
-                  <span>Room pricing (₹ per night)</span>
-                  <input id="setting-room-price" type="number" aria-label="Room pricing" min="0" />
-                </label>
-                <label class="admin-field">
-                  <span>Number of rooms</span>
-                  <input id="setting-room-count" type="number" aria-label="Number of rooms" min="1" />
-                </label>
-                <label class="admin-field admin-field--full">
-                  <span>Address line 1</span>
-                  <input
-                    id="setting-address-line-1"
-                    type="text"
-                    aria-label="Address line 1"
-                    placeholder="First Floor, Diamond Arcade, Allapra P.O,"
-                  />
-                </label>
-                <label class="admin-field admin-field--full">
-                  <span>Address line 2</span>
-                  <input
-                    id="setting-address-line-2"
-                    type="text"
-                    aria-label="Address line 2"
-                    placeholder="Perumbavoor, Ernakulam, Kerala 683556"
-                  />
-                </label>
-                <label class="admin-field">
-                  <span>Map label</span>
-                  <input
-                    id="setting-map-label"
-                    type="text"
-                    aria-label="Map label"
-                    placeholder="Diamond Arcade, Allapra P.O, Perumbavoor"
-                  />
-                </label>
-                <label class="admin-field">
-                  <span>Inquiry hours</span>
-                  <input
-                    id="setting-inquiry-hours"
-                    type="text"
-                    aria-label="Inquiry hours"
-                    placeholder="Open for inquiries 9 AM – 9 PM, all days"
-                  />
-                </label>
-                <div class="admin-actions">
-                  <button class="admin-button admin-button--primary" type="submit">Save Settings</button>
-                  <button class="admin-button admin-button--gold" id="refresh-settings" type="button">
-                    Refresh
-                  </button>
-                </div>
-                <p class="admin-status" id="settings-status" aria-live="polite"></p>
               </form>
             </section>
+          </div>
+
+          <section class="admin-surface" id="site-profile-surface" hidden>
+            <div class="admin-surface__header">
+              <div>
+                <p class="admin-surface__eyebrow">Venue Controls</p>
+                <h3>System settings</h3>
+              </div>
+            </div>
+
+            <form class="admin-form" id="site-profile-form" novalidate>
+              <div class="admin-form-grid">
+                <label class="admin-field" for="settings-hall-name">
+                  <span>Hall Name</span>
+                  <input id="settings-hall-name" type="text" required />
+                </label>
+
+                <label class="admin-field" for="settings-contact-number">
+                  <span>Contact Number</span>
+                  <input id="settings-contact-number" type="text" inputmode="tel" required />
+                </label>
+
+                <label class="admin-field" for="settings-whatsapp-number">
+                  <span>WhatsApp Number</span>
+                  <input id="settings-whatsapp-number" type="text" inputmode="tel" />
+                </label>
+
+                <label class="admin-field" for="settings-instagram-handle">
+                  <span>Instagram Handle</span>
+                  <input id="settings-instagram-handle" type="text" />
+                </label>
+
+                <label class="admin-field admin-field--full" for="settings-google-maps-link">
+                  <span>Google Maps Link</span>
+                  <input id="settings-google-maps-link" type="url" inputmode="url" />
+                </label>
+
+                <label class="admin-field" for="settings-location-label">
+                  <span>Location Label</span>
+                  <input id="settings-location-label" type="text" />
+                </label>
+
+                <label class="admin-field" for="settings-map-label">
+                  <span>Map Label</span>
+                  <input id="settings-map-label" type="text" />
+                </label>
+
+                <label class="admin-field admin-field--full" for="settings-address-line-1">
+                  <span>Address Line 1</span>
+                  <input id="settings-address-line-1" type="text" />
+                </label>
+
+                <label class="admin-field admin-field--full" for="settings-address-line-2">
+                  <span>Address Line 2</span>
+                  <input id="settings-address-line-2" type="text" />
+                </label>
+
+                <label class="admin-field admin-field--full" for="settings-inquiry-hours">
+                  <span>Inquiry Hours</span>
+                  <input id="settings-inquiry-hours" type="text" />
+                </label>
+
+                <label class="admin-field admin-field--full" for="settings-hall-open">
+                  <span>Hall Status</span>
+                  <select id="settings-hall-open">
+                    <option value="true">Open</option>
+                    <option value="false">Paused</option>
+                  </select>
+                </label>
+              </div>
+
+              <p class="admin-status" id="site-profile-status" aria-live="polite"></p>
+
+              <div class="admin-action-stack">
+                <button class="admin-button admin-button--primary" id="site-profile-save-button" type="submit">
+                  Save Venue Controls
+                </button>
+              </div>
+            </form>
           </section>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
 
-    <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
-
-    <script src="./js/runtime-config.js"></script>
-    <script type="module" src="./js/admin.js"></script>
+    <script src="/js/runtime-config.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+    ></script>
+    <script defer src="/js/admin.js"></script>
   </body>
 </html>

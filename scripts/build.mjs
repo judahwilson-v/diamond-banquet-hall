@@ -6,7 +6,7 @@ const distDir = join(rootDir, "dist");
 const runtimeConfigPath = join(distDir, "js", "runtime-config.js");
 
 const buildPaths = {
-  html: ["index.html", "booking.html", "admin.html", "login.html"],
+  html: ["index.html", "booking.html", "admin.html", "login.html", "_headers"],
   directories: ["css", "js", "images"]
 };
 

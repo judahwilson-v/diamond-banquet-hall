@@ -198,6 +198,35 @@ const normalizeBookingPhone = (value) => {
   return "";
 };
 
+const createUuid = () => {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const segments = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+
+  return [
+    segments.slice(0, 4).join(""),
+    segments.slice(4, 6).join(""),
+    segments.slice(6, 8).join(""),
+    segments.slice(8, 10).join(""),
+    segments.slice(10, 16).join("")
+  ].join("-");
+};
+
 const normalizeBookingRequestList = (items) =>
   (Array.isArray(items) ? items : [])
     .map((item, index) => ({
@@ -401,27 +430,23 @@ export const fetchSiteSettings = async () => {
 };
 
 export const fetchBookedDates = async ({ startDate, endDate } = {}) => {
-  let query = supabaseClient
-    .from("bookings")
-    .select("booked_date")
-    .eq("status", "booked")
-    .order("booked_date", { ascending: true });
+  const normalizedStartDate = bookedDatePattern.test(String(startDate ?? "").trim())
+    ? String(startDate).trim()
+    : null;
+  const normalizedEndDate = bookedDatePattern.test(String(endDate ?? "").trim())
+    ? String(endDate).trim()
+    : null;
 
-  if (bookedDatePattern.test(String(startDate ?? "").trim())) {
-    query = query.gte("booked_date", String(startDate).trim());
-  }
-
-  if (bookedDatePattern.test(String(endDate ?? "").trim())) {
-    query = query.lte("booked_date", String(endDate).trim());
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await supabaseClient.rpc("get_public_booked_dates", {
+    p_start_date: normalizedStartDate,
+    p_end_date: normalizedEndDate
+  });
 
   if (error) {
     throw error;
   }
 
-  return normalizeDateList((data ?? []).map((item) => item.booked_date));
+  return normalizeDateList((data ?? []).map((item) => item.event_date));
 };
 
 export const fetchBookingRequests = async ({ startDate, endDate } = {}) => {
@@ -450,14 +475,11 @@ export const fetchBookingRequests = async ({ startDate, endDate } = {}) => {
 };
 
 export const fetchBookingAvailabilityWindow = async ({ startDate, endDate } = {}) => {
-  const [bookedDates, bookingRequests] = await Promise.all([
-    fetchBookedDates({ startDate, endDate }),
-    fetchBookingRequests({ startDate, endDate })
-  ]);
+  const bookedDates = await fetchBookedDates({ startDate, endDate });
 
   return {
     bookedDates,
-    bookingRequests,
+    bookingRequests: [],
     source: "supabase"
   };
 };
@@ -472,36 +494,7 @@ export const getFallbackBookingAvailability = () => {
       buildFallbackDate(19),
       buildFallbackDate(27)
     ]),
-    bookingRequests: normalizeBookingRequestList([
-      {
-        id: "fallback-booking-request-1",
-        event_date: buildFallbackDate(3),
-        start_time: "06:00",
-        end_time: "07:00",
-        status: "pending"
-      },
-      {
-        id: "fallback-booking-request-2",
-        event_date: buildFallbackDate(9),
-        start_time: "10:00",
-        end_time: "12:00",
-        status: "booked"
-      },
-      {
-        id: "fallback-booking-request-3",
-        event_date: buildFallbackDate(14),
-        start_time: "08:00",
-        end_time: "12:00",
-        status: "booked"
-      },
-      {
-        id: "fallback-booking-request-4",
-        event_date: buildFallbackDate(22),
-        start_time: "07:00",
-        end_time: "08:00",
-        status: "pending"
-      }
-    ])
+    bookingRequests: []
   };
 };
 
@@ -562,8 +555,6 @@ export const fetchEnquiries = async () => {
 
 export const submitBookingRequest = async (input) => {
   const eventDate = String(input.eventDate ?? "").trim();
-  const startTime = normalizeBookingTime(input.startTime);
-  const endTime = normalizeBookingTime(input.endTime);
   const customerName = normalizeBookingText(input.customerName);
   const customerPhone = normalizeBookingPhone(input.customerPhone);
   const customerEmail = normalizeBookingEmail(input.customerEmail);
@@ -575,10 +566,6 @@ export const submitBookingRequest = async (input) => {
 
   if (!bookedDatePattern.test(eventDate)) {
     throw new Error("Please choose a valid booking date.");
-  }
-
-  if (!startTime || !endTime || startTime >= endTime) {
-    throw new Error("Please choose a valid booking time range.");
   }
 
   if (!customerName) {
@@ -601,51 +588,32 @@ export const submitBookingRequest = async (input) => {
     }
   }
 
-  const bookingPayload = {
-    event_date: eventDate,
-    start_time: startTime,
-    end_time: endTime,
-    customer_name: customerName,
-    customer_phone: customerPhone,
-    customer_email: customerEmail || null,
-    organisation: organisation || null,
-    event_type: eventType,
-    attendee_count: attendeeCount,
-    notes: notes || null,
-    status: "pending"
+  const bookingId = createUuid();
+  const { data, error } = await supabaseClient.rpc("create_booking_request", {
+    p_booking_id: bookingId,
+    p_customer_name: customerName,
+    p_customer_email: customerEmail || null,
+    p_customer_phone: customerPhone,
+    p_event_date: eventDate,
+    p_guest_count: attendeeCount,
+    p_organisation: organisation || null,
+    p_event_type: eventType,
+    p_notes: notes || null,
+    p_enquiry_message: enquiryMessage || null
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const booking = {
+    id: String(data?.id ?? bookingId),
+    eventDate: String(data?.event_date ?? eventDate).trim().slice(0, 10),
+    status: String(data?.status ?? "pending").trim().toLowerCase() || "pending"
   };
 
-  const { data: bookingData, error: bookingError } = await supabaseClient
-    .from("booking_requests")
-    .insert(bookingPayload)
-    .select("id, event_date, start_time, end_time, status")
-    .single();
-
-  if (bookingError) {
-    throw bookingError;
-  }
-
-  const { error: enquiryError } = await supabaseClient
-    .from("enquiries")
-    .insert({
-      customer_name: customerName,
-      customer_phone: customerPhone,
-      event_date: eventDate,
-      message: enquiryMessage || null,
-      status: "new"
-    });
-
-  if (enquiryError) {
-    await supabaseClient
-      .from("booking_requests")
-      .delete()
-      .eq("id", bookingData.id);
-
-    throw enquiryError;
-  }
-
   return {
-    bookingRequest: normalizeBookingRequestList([bookingData])[0],
+    booking,
     enquiryMessage
   };
 };
@@ -859,84 +827,12 @@ export const saveSiteSettings = async (input, schema) => {
 };
 
 export const upsertBookingStatus = async (dateKey, status) => {
-  const normalizedDate = String(dateKey ?? "").trim();
+  void dateKey;
+  void status;
 
-  if (!bookedDatePattern.test(normalizedDate)) {
-    throw new Error("Please choose a valid booking date.");
-  }
-
-  if (!["booked", "available"].includes(status)) {
-    throw new Error("Booking status must be booked or available.");
-  }
-
-  const { data: existingRow, error: selectError } = await supabaseClient
-    .from("bookings")
-    .select("id, booked_date, status")
-    .eq("booked_date", normalizedDate)
-    .maybeSingle();
-
-  if (selectError) {
-    throw selectError;
-  }
-
-  if (existingRow) {
-    if (status === "available") {
-      const { error: deleteError } = await supabaseClient
-        .from("bookings")
-        .delete()
-        .eq("id", existingRow.id);
-
-      if (deleteError) {
-        throw deleteError;
-      }
-
-      return {
-        action: "deleted",
-        status
-      };
-    }
-
-    if (existingRow.status === status) {
-      return {
-        action: "noop",
-        status
-      };
-    }
-
-    const { error: updateError } = await supabaseClient
-      .from("bookings")
-      .update({ status })
-      .eq("id", existingRow.id);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    return {
-      action: "updated",
-      status
-    };
-  }
-
-  if (status === "available") {
-    return {
-      action: "noop",
-      status
-    };
-  }
-
-  const { error: insertError } = await supabaseClient
-    .from("bookings")
-    .insert({ booked_date: normalizedDate, status });
-
-  if (insertError) {
-    throw insertError;
-  }
-
-  return {
-    action: "inserted",
-    status
-  };
+  throw new Error(
+    "upsertBookingStatus is no longer supported. Use the admin portal to confirm or cancel booking rows."
+  );
 };
 
 export const addReview = async (input) => {
@@ -1052,35 +948,46 @@ export const subscribeToVenueUpdates = ({
   onSettingsChange,
   onError
 } = {}) => {
-  const channel = supabaseClient
-    .channel(`diamond-live-${Math.random().toString(36).slice(2, 10)}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "bookings" },
-      (payload) => onBookingsChange?.(payload)
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "booking_requests" },
-      (payload) => onBookingRequestsChange?.(payload)
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "reviews" },
-      (payload) => onReviewsChange?.(payload)
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "site_settings" },
-      (payload) => onSettingsChange?.(payload)
-    )
-    .subscribe((status, error) => {
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        onError?.(error ?? new Error("Live data sync is temporarily unavailable."));
-      }
-    });
+  const channels = [];
+  const subscriptions = [
+    {
+      table: "bookings",
+      callback: onBookingsChange
+    },
+    {
+      table: "booking_requests",
+      callback: onBookingRequestsChange
+    },
+    {
+      table: "reviews",
+      callback: onReviewsChange
+    },
+    {
+      table: "site_settings",
+      callback: onSettingsChange
+    }
+  ].filter((subscription) => typeof subscription.callback === "function");
+
+  subscriptions.forEach((subscription) => {
+    const channel = supabaseClient
+      .channel(`diamond-live-${subscription.table}-${Math.random().toString(36).slice(2, 10)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: subscription.table },
+        (payload) => subscription.callback?.(payload)
+      )
+      .subscribe((status, error) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          onError?.(error ?? new Error("Live data sync is temporarily unavailable."));
+        }
+      });
+
+    channels.push(channel);
+  });
 
   return () => {
-    void supabaseClient.removeChannel(channel);
+    channels.forEach((channel) => {
+      void supabaseClient.removeChannel(channel);
+    });
   };
 };
