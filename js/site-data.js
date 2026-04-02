@@ -1,4 +1,8 @@
-import { supabaseClient } from "./supabase-client.js";
+import {
+  SUPABASE_CONFIG_ERROR,
+  initializeSupabase,
+  supabaseClient
+} from "./supabase-config.js";
 import { fallbackBookedDates } from "./bookings.js";
 import { fallbackReviews } from "./reviews.js";
 
@@ -357,6 +361,42 @@ export const describeSupabaseError = (error, fallbackMessage) => {
   return fallbackMessage;
 };
 
+const createMissingClientError = () => {
+  if (SUPABASE_CONFIG_ERROR) {
+    return SUPABASE_CONFIG_ERROR;
+  }
+
+  const error = new Error("Supabase client is unavailable. Check runtime-config.js.");
+  error.code = "SUPABASE_CONFIG_MISSING";
+  return error;
+};
+
+const getSupabaseClientOrThrow = async () => {
+  const activeClient = globalThis.supabaseClient ?? supabaseClient;
+
+  if (activeClient?.from && activeClient?.rpc && activeClient?.auth) {
+    return activeClient;
+  }
+
+  const initializedClient = await initializeSupabase();
+
+  if (initializedClient?.from && initializedClient?.rpc && initializedClient?.auth) {
+    return initializedClient;
+  }
+
+  throw createMissingClientError();
+};
+
+const getSupabaseClientForRealtime = () => {
+  const activeClient = globalThis.supabaseClient ?? supabaseClient;
+
+  if (activeClient?.channel && activeClient?.removeChannel) {
+    return activeClient;
+  }
+
+  throw createMissingClientError();
+};
+
 export const normalizeSiteSettings = (raw = {}) => {
   const phoneDisplay = formatIndianPhoneDisplay(
     raw.phoneDisplay ?? raw.contact_number ?? raw.contactNumber,
@@ -411,7 +451,8 @@ export const buildWhatsAppLink = (baseHref, message) => {
 };
 
 export const fetchSiteSettings = async () => {
-  const { data, error } = await supabaseClient
+  const client = await getSupabaseClientOrThrow();
+  const { data, error } = await client
     .from("site_settings")
     .select("*")
     .eq("id", 1)
@@ -430,6 +471,7 @@ export const fetchSiteSettings = async () => {
 };
 
 export const fetchBookedDates = async ({ startDate, endDate } = {}) => {
+  const client = await getSupabaseClientOrThrow();
   const normalizedStartDate = bookedDatePattern.test(String(startDate ?? "").trim())
     ? String(startDate).trim()
     : null;
@@ -437,7 +479,7 @@ export const fetchBookedDates = async ({ startDate, endDate } = {}) => {
     ? String(endDate).trim()
     : null;
 
-  const { data, error } = await supabaseClient.rpc("get_public_booked_dates", {
+  const { data, error } = await client.rpc("get_public_booked_dates", {
     p_start_date: normalizedStartDate,
     p_end_date: normalizedEndDate
   });
@@ -450,7 +492,8 @@ export const fetchBookedDates = async ({ startDate, endDate } = {}) => {
 };
 
 export const fetchBookingRequests = async ({ startDate, endDate } = {}) => {
-  let query = supabaseClient
+  const client = await getSupabaseClientOrThrow();
+  let query = client
     .from("booking_requests")
     .select("id, event_date, start_time, end_time, status")
     .in("status", ["pending", "booked"])
@@ -499,7 +542,8 @@ export const getFallbackBookingAvailability = () => {
 };
 
 export const fetchReviews = async ({ visibleOnly = false } = {}) => {
-  const { data, error } = await supabaseClient
+  const client = await getSupabaseClientOrThrow();
+  const { data, error } = await client
     .from("reviews")
     .select("*")
     .order("created_at", { ascending: true });
@@ -529,7 +573,8 @@ export const fetchReviews = async ({ visibleOnly = false } = {}) => {
 };
 
 export const fetchEnquiries = async () => {
-  const { data, error } = await supabaseClient
+  const client = await getSupabaseClientOrThrow();
+  const { data, error } = await client
     .from("enquiries")
     .select("*")
     .order("created_at", { ascending: false });
@@ -554,6 +599,7 @@ export const fetchEnquiries = async () => {
 };
 
 export const submitBookingRequest = async (input) => {
+  const client = await getSupabaseClientOrThrow();
   const eventDate = String(input.eventDate ?? "").trim();
   const customerName = normalizeBookingText(input.customerName);
   const customerPhone = normalizeBookingPhone(input.customerPhone);
@@ -589,7 +635,7 @@ export const submitBookingRequest = async (input) => {
   }
 
   const bookingId = createUuid();
-  const { data, error } = await supabaseClient.rpc("create_booking_request", {
+  const { data, error } = await client.rpc("create_booking_request", {
     p_booking_id: bookingId,
     p_customer_name: customerName,
     p_customer_email: customerEmail || null,
@@ -664,7 +710,8 @@ export const sendBookingAdminNotification = async (input) => {
 };
 
 export const fetchGalleryAssets = async () => {
-  const { data, error } = await supabaseClient.storage.from(GALLERY_BUCKET).list("", {
+  const client = await getSupabaseClientOrThrow();
+  const { data, error } = await client.storage.from(GALLERY_BUCKET).list("", {
     limit: 100,
     sortBy: {
       column: "name",
@@ -687,7 +734,7 @@ export const fetchGalleryAssets = async () => {
 
   const items = await Promise.all(
     paths.map(async (path, index) => {
-      const { data: signedData, error: signedError } = await supabaseClient.storage
+      const { data: signedData, error: signedError } = await client.storage
         .from(GALLERY_BUCKET)
         .createSignedUrl(path, 60 * 60);
 
@@ -708,7 +755,8 @@ export const fetchGalleryAssets = async () => {
 };
 
 export const getCurrentSession = async () => {
-  const { data, error } = await supabaseClient.auth.getSession();
+  const client = await getSupabaseClientOrThrow();
+  const { data, error } = await client.auth.getSession();
 
   if (error) {
     throw error;
@@ -722,7 +770,8 @@ export const signInAdmin = async (email, password) => {
     throw new Error("Enter both your admin email and password.");
   }
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
+  const client = await getSupabaseClientOrThrow();
+  const { data, error } = await client.auth.signInWithPassword({
     email,
     password
   });
@@ -735,7 +784,8 @@ export const signInAdmin = async (email, password) => {
 };
 
 export const signOutAdmin = async () => {
-  const { error } = await supabaseClient.auth.signOut();
+  const client = await getSupabaseClientOrThrow();
+  const { error } = await client.auth.signOut();
 
   if (error) {
     throw error;
@@ -743,6 +793,7 @@ export const signOutAdmin = async () => {
 };
 
 export const saveSiteSettings = async (input, schema) => {
+  const client = await getSupabaseClientOrThrow();
   const normalized = normalizeSiteSettings(input);
   const unsupportedFields = [];
   const contactDigits = toDigits(normalized.phoneDisplay);
@@ -809,7 +860,7 @@ export const saveSiteSettings = async (input, schema) => {
     unsupportedFields.push("inquiry hours");
   }
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await client
     .from("site_settings")
     .upsert(payload, { onConflict: "id" })
     .select("*")
@@ -836,6 +887,7 @@ export const upsertBookingStatus = async (dateKey, status) => {
 };
 
 export const addReview = async (input) => {
+  const client = await getSupabaseClientOrThrow();
   const normalized = normalizeReviewList([
     {
       id: null,
@@ -878,7 +930,7 @@ export const addReview = async (input) => {
   let lastError = null;
 
   for (const payload of payloadCandidates) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await client
       .from("reviews")
       .insert(payload)
       .select("*")
@@ -899,7 +951,8 @@ export const addReview = async (input) => {
 };
 
 export const deleteReview = async (id) => {
-  const { error } = await supabaseClient
+  const client = await getSupabaseClientOrThrow();
+  const { error } = await client
     .from("reviews")
     .delete()
     .eq("id", id);
@@ -910,13 +963,14 @@ export const deleteReview = async (id) => {
 };
 
 export const updateEnquiryStatus = async (id, status) => {
+  const client = await getSupabaseClientOrThrow();
   const allowedStatuses = ["new", "contacted", "booked", "cancelled"];
 
   if (!allowedStatuses.includes(status)) {
     throw new Error("Enquiry status is invalid.");
   }
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await client
     .from("enquiries")
     .update({ status })
     .eq("id", id)
@@ -931,7 +985,8 @@ export const updateEnquiryStatus = async (id, status) => {
 };
 
 export const deleteEnquiry = async (id) => {
-  const { error } = await supabaseClient
+  const client = await getSupabaseClientOrThrow();
+  const { error } = await client
     .from("enquiries")
     .delete()
     .eq("id", id);
@@ -948,6 +1003,15 @@ export const subscribeToVenueUpdates = ({
   onSettingsChange,
   onError
 } = {}) => {
+  let client = null;
+
+  try {
+    client = getSupabaseClientForRealtime();
+  } catch (error) {
+    onError?.(error);
+    return () => {};
+  }
+
   const channels = [];
   const subscriptions = [
     {
@@ -969,7 +1033,7 @@ export const subscribeToVenueUpdates = ({
   ].filter((subscription) => typeof subscription.callback === "function");
 
   subscriptions.forEach((subscription) => {
-    const channel = supabaseClient
+    const channel = client
       .channel(`diamond-live-${subscription.table}-${Math.random().toString(36).slice(2, 10)}`)
       .on(
         "postgres_changes",
@@ -987,7 +1051,7 @@ export const subscribeToVenueUpdates = ({
 
   return () => {
     channels.forEach((channel) => {
-      void supabaseClient.removeChannel(channel);
+      void client.removeChannel(channel);
     });
   };
 };

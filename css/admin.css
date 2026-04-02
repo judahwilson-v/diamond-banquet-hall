@@ -582,10 +582,12 @@ h3,
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
 }
 
 .admin-user-pill {
+  min-width: 160px;
   padding: 14px 20px;
   border-radius: 999px;
   border: 1px solid var(--admin-line);
@@ -749,6 +751,7 @@ h3,
   padding: 24px;
   vertical-align: middle;
   color: var(--admin-text-soft);
+  word-break: break-word;
 }
 
 .admin-cell-name {
@@ -1003,7 +1006,7 @@ h3,
   }
 
   .admin-header__actions {
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .admin-form-grid {
@@ -1095,6 +1098,10 @@ h3,
 
   .admin-row-actions {
     justify-content: flex-start;
+  }
+
+  .admin-row-actions .admin-button {
+    flex: 1 1 150px;
   }
 
   .admin-modal {

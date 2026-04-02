@@ -16,7 +16,8 @@ const resolveAdminAccess = async (email) => {
   const { data, error } = await supabaseClient
     .from("admin_users")
     .select("email, role")
-    .eq("email", normalizedEmail)
+    .ilike("email", normalizedEmail)
+    .limit(1)
     .maybeSingle();
 
   if (error) {

@@ -4,9 +4,10 @@ import {
   describeSupabaseError,
   fetchBookingAvailabilityWindow,
   fetchSiteSettings,
-  submitBookingRequest
+  submitBookingRequest,
+  subscribeToVenueUpdates
 } from "./site-data.js";
-import { SUPABASE_CONFIG_ERROR, supabase } from "./supabase-config.js";
+import { SUPABASE_CONFIG_ERROR } from "./supabase-config.js";
 
 const FIXED_BOOKING_START = "06:00";
 const FIXED_BOOKING_END = "12:00";
@@ -976,6 +977,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   const footerYear = document.getElementById("booking-footer-year");
+  let unsubscribeVenueUpdates = null;
 
   const applyBrandSettings = () => {
     document.title = `${state.siteSettings.venueName} Booking | ${state.siteSettings.locationLabel}`;
@@ -1007,6 +1009,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
+  const refreshSiteSettings = async ({ silent = true } = {}) => {
+    try {
+      const { settings } = await runWithSingleRetry(() => fetchSiteSettings());
+      state.siteSettings = settings;
+
+      if (state.siteSettings.hallStatusOpen === false) {
+        state.selectedDate = null;
+      }
+
+      applyBrandSettings();
+      calendarModule.render();
+      selectionModule.render(state);
+      submitModule.syncAvailabilityState?.();
+    } catch (error) {
+      if (!silent) {
+        console.warn("Default booking page settings are being used.", error);
+      }
+    }
+  };
+
+  const refreshBookingPage = async () => {
+    await Promise.allSettled([
+      refreshSiteSettings(),
+      calendarModule.loadAvailability()
+    ]);
+  };
+
   if (footerYear) {
     footerYear.textContent = String(new Date().getFullYear());
   }
@@ -1014,22 +1043,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadingModule.init();
   applyBrandSettings();
 
-  if (!supabase || SUPABASE_CONFIG_ERROR) {
-    console.error("Supabase not initialized", SUPABASE_CONFIG_ERROR);
-    return;
-  }
-
-  try {
-    const { settings } = await runWithSingleRetry(() => fetchSiteSettings());
-    state.siteSettings = settings;
-    applyBrandSettings();
-  } catch (error) {
-    console.warn("Default booking page settings are being used.", error);
-  }
-
   selectionModule.init(state);
   calendarModule.init(state);
   formModule.init(state);
   successModule.init(state);
   submitModule.init(state);
+
+  await refreshSiteSettings({ silent: false });
+
+  if (!SUPABASE_CONFIG_ERROR) {
+    unsubscribeVenueUpdates = subscribeToVenueUpdates({
+      onBookingsChange: () => {
+        void calendarModule.loadAvailability();
+      },
+      onSettingsChange: () => {
+        void refreshSiteSettings();
+      },
+      onError: (error) => {
+        console.warn("Booking page live sync is temporarily unavailable.", error);
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      void refreshBookingPage();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      void refreshBookingPage();
+    });
+  }
+
+  window.addEventListener("beforeunload", () => {
+    unsubscribeVenueUpdates?.();
+  });
 });

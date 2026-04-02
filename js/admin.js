@@ -83,12 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  if (!getSupabaseCreateClient()) {
-    state.client = null;
-    setLoadingState("Supabase could not be loaded from the CDN.", true);
-    return;
-  }
-
   void initializePortal();
 
   function cacheDom() {
@@ -249,15 +243,69 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  function getSupabaseCreateClient() {
+  const wait = (delayMs) =>
+    new Promise((resolve) => {
+      window.setTimeout(resolve, delayMs);
+    });
+
+  function isUsableSupabaseClient(candidate) {
+    return Boolean(
+      candidate &&
+      typeof candidate.from === "function" &&
+      typeof candidate.auth?.getSession === "function"
+    );
+  }
+
+  function getSupabaseClient() {
+    const existingClient = window.supabaseClient ?? window.supabase;
+
+    if (isUsableSupabaseClient(existingClient)) {
+      return existingClient;
+    }
+
+    return null;
+  }
+
+  function createSupabaseClient(runtimeConfig) {
     const createClient = window.supabase?.createClient;
 
     if (typeof createClient !== "function") {
-      console.error("[diamond-admin] Supabase could not be loaded from the CDN.");
       return null;
     }
 
-    return createClient;
+    const client = createClient(runtimeConfig.supabaseUrl, runtimeConfig.supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    });
+
+    window.supabaseClient = client;
+    return client;
+  }
+
+  async function waitForSupabaseClient(runtimeConfig, timeout = 4000) {
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const existingClient = getSupabaseClient();
+
+      if (existingClient) {
+        return existingClient;
+      }
+
+      const createdClient = createSupabaseClient(runtimeConfig);
+
+      if (createdClient) {
+        return createdClient;
+      }
+
+      await wait(50);
+    }
+
+    console.error("[diamond-admin] Supabase client was not initialized.");
+    return null;
   }
 
   function bindEvents() {
@@ -515,27 +563,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const runtimeConfig = getRuntimeConfig();
-      const createClient = getSupabaseCreateClient();
-
       if (!runtimeConfig) {
         reportBootFailure("Missing runtime config. Build and deploy the generated runtime-config.js file.");
         return;
       }
 
-      if (!createClient) {
-        reportBootFailure("Supabase could not be loaded from the CDN.");
+      const client = await waitForSupabaseClient(runtimeConfig);
+
+      if (!client) {
+        reportBootFailure("Supabase client could not be initialized.");
         return;
       }
 
       console.log("RUNTIME CONFIG:", window.DIAMOND_RUNTIME_CONFIG);
 
-      state.client = createClient(runtimeConfig.supabaseUrl, runtimeConfig.supabaseAnonKey, {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true
-        }
-      });
+      state.client = client;
 
       const {
         data: { session },
@@ -580,7 +622,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const { data, error } = await state.client
       .from("admin_users")
       .select("email, role")
-      .eq("email", email)
+      .ilike("email", email)
+      .limit(1)
       .maybeSingle();
 
     if (error) {
