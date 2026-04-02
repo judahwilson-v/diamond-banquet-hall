@@ -4,9 +4,9 @@ import {
   describeSupabaseError,
   fetchBookingAvailabilityWindow,
   fetchSiteSettings,
-  sendBookingAdminNotification,
   submitBookingRequest
 } from "./site-data.js";
+import { SUPABASE_CONFIG_ERROR, supabase } from "./supabase-config.js";
 
 const FIXED_BOOKING_START = "06:00";
 const FIXED_BOOKING_END = "12:00";
@@ -129,15 +129,16 @@ const runWithSingleRetry = async (task, { delayMs = 650 } = {}) => {
   }
 };
 
-const buildBookingMessage = ({ siteSettings, selectedDate, values }) => {
+const buildBookingMessage = ({ selectedDate, values }) => {
   const lines = [
-    `Hello ${siteSettings.venueName}, I would like to request a booking.`,
-    `Date: ${formatLongDate(selectedDate)}`,
-    `Booking window: ${FIXED_BOOKING_START} - ${FIXED_BOOKING_END}`,
+    "New Booking Request:",
+    "",
     `Name: ${values.name}`,
     `Phone: ${values.phone}`,
-    `Event Type: ${values.eventType || "Other"}`,
-    `Attendees: ${values.attendees}`
+    `Date: ${formatLongDate(selectedDate)}`,
+    `Event: ${values.eventType || "Other"}`,
+    `Guests: ${values.attendees}`,
+    `Notes: ${values.notes || "Not provided"}`
   ];
 
   if (values.email) {
@@ -148,11 +149,42 @@ const buildBookingMessage = ({ siteSettings, selectedDate, values }) => {
     lines.push(`Organisation: ${values.organisation}`);
   }
 
-  if (values.notes) {
-    lines.push(`Notes: ${values.notes}`);
-  }
-
   return lines.join("\n");
+};
+
+const sendBookingEmailNotification = async ({
+  name,
+  phone,
+  email,
+  eventDate,
+  eventType,
+  attendees,
+  notes
+}) => {
+  try {
+    const response = await fetch("/api/send-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name,
+        phone,
+        email,
+        eventDate,
+        eventType,
+        attendees,
+        notes
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Booking email notification failed", errorText);
+    }
+  } catch (error) {
+    console.error("Booking email notification failed", error);
+  }
 };
 
 const calendarModule = {
@@ -817,6 +849,10 @@ const submitModule = {
   },
 
   async handleSubmit() {
+    if (this.state.isSubmitting) {
+      return;
+    }
+
     const values = this.state.formApi?.readValues?.() ?? {};
     let whatsappWindow = null;
     let shouldCloseWhatsAppWindow = false;
@@ -846,7 +882,6 @@ const submitModule = {
     }
 
     const bookingMessage = buildBookingMessage({
-      siteSettings: this.state.siteSettings,
       selectedDate: this.state.selectedDate,
       values
     });
@@ -878,37 +913,32 @@ const submitModule = {
         })
       );
 
-      let notificationWarning = "";
-
-      try {
-        await sendBookingAdminNotification({
-          customerName: values.name,
-          customerPhone: values.phone,
-          customerEmail: values.email,
-          eventDate: this.state.selectedDate,
-          startTime: FIXED_BOOKING_START,
-          endTime: FIXED_BOOKING_END,
-          eventType: values.eventType || "Other",
-          attendeeCount: values.attendees,
-          notes: values.notes
-        });
-      } catch (notificationError) {
-        console.warn("Admin email notification failed for booking request.", notificationError);
-        notificationWarning = " Admin email notification could not be sent automatically.";
-      }
-
       this.state.lastSubmittedBooking = result.booking;
       await calendarModule.loadAvailability();
 
-      if (whatsappWindow) {
-        shouldCloseWhatsAppWindow = false;
-        whatsappWindow.location.href = whatsappHref;
-      } else {
-        window.open(whatsappHref, "_blank", "noopener,noreferrer");
+      await sendBookingEmailNotification({
+        name: values.name,
+        phone: values.phone,
+        email: values.email,
+        eventDate: this.state.selectedDate,
+        eventType: values.eventType || "Other",
+        attendees: values.attendees,
+        notes: values.notes
+      });
+
+      try {
+        if (whatsappWindow) {
+          shouldCloseWhatsAppWindow = false;
+          whatsappWindow.location.href = whatsappHref;
+        } else {
+          window.open(whatsappHref, "_blank", "noopener,noreferrer");
+        }
+      } catch (whatsAppError) {
+        console.error("WhatsApp redirect failed", whatsAppError);
       }
 
       this.state.formApi?.setStatus?.(
-        `Booking request sent. WhatsApp is opening with your booking details.${notificationWarning}`,
+        "Booking request sent. WhatsApp is opening with your booking details.",
         "success"
       );
       successModule.open();
@@ -983,6 +1013,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   loadingModule.init();
   applyBrandSettings();
+
+  if (!supabase || SUPABASE_CONFIG_ERROR) {
+    console.error("Supabase not initialized", SUPABASE_CONFIG_ERROR);
+    return;
+  }
 
   try {
     const { settings } = await runWithSingleRetry(() => fetchSiteSettings());

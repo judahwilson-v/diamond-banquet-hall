@@ -6,100 +6,105 @@ const createConfigError = (message) => {
   return error;
 };
 
-console.log("Runtime config loaded:", globalThis.DIAMOND_RUNTIME_CONFIG);
+const waitForRuntimeConfig = (timeout = 3000) =>
+  new Promise((resolve, reject) => {
+    const start = Date.now();
+
+    const check = () => {
+      const config = globalThis.DIAMOND_RUNTIME_CONFIG;
+
+      if (config?.SUPABASE_URL && config?.SUPABASE_ANON_KEY) {
+        console.log("Runtime config ready:", config);
+        resolve(config);
+        return;
+      }
+
+      if (Date.now() - start >= timeout) {
+        reject(createConfigError("Runtime config never loaded"));
+        return;
+      }
+
+      console.warn("Waiting for runtime config...");
+      globalThis.setTimeout(check, 50);
+    };
+
+    check();
+  });
 
 let SUPABASE_URL = "";
 let SUPABASE_ANON_KEY = "";
 let SUPABASE_CONFIG_ERROR = null;
 let hasSupabaseConfig = false;
-let initializedClient = null;
-let initializationAttempted = false;
+let supabase = null;
+let supabaseClient = null;
+let initPromise = null;
 
-const resolveRuntimeConfig = () => {
-  if (
-    !globalThis.DIAMOND_RUNTIME_CONFIG ||
-    !globalThis.DIAMOND_RUNTIME_CONFIG.SUPABASE_URL
-  ) {
-    console.error("Runtime config missing:", globalThis.DIAMOND_RUNTIME_CONFIG);
-    throw createConfigError("Supabase runtime config is missing");
+const initializeSupabase = async () => {
+  if (supabaseClient) {
+    return supabaseClient;
   }
 
-  const runtimeConfig = globalThis.DIAMOND_RUNTIME_CONFIG;
-  const supabaseUrl = String(runtimeConfig.SUPABASE_URL ?? "").trim();
-  const supabaseAnonKey = String(runtimeConfig.SUPABASE_ANON_KEY ?? "").trim();
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("Runtime config missing:", globalThis.DIAMOND_RUNTIME_CONFIG);
-    throw createConfigError("Supabase runtime config is missing");
+  if (initPromise) {
+    return initPromise;
   }
 
-  try {
-    const parsedUrl = new URL(supabaseUrl);
+  initPromise = waitForRuntimeConfig()
+    .then((config) => {
+      SUPABASE_URL = String(config.SUPABASE_URL ?? "").trim();
+      SUPABASE_ANON_KEY = String(config.SUPABASE_ANON_KEY ?? "").trim();
 
-    if (!/^https?:$/.test(parsedUrl.protocol)) {
-      throw new Error("Supabase runtime config must use an http or https URL.");
-    }
-  } catch (_error) {
-    throw createConfigError(
-      "Supabase runtime config is invalid. Check DIAMOND_SUPABASE_URL and DIAMOND_SUPABASE_ANON_KEY."
-    );
-  }
-
-  return {
-    supabaseUrl,
-    supabaseAnonKey
-  };
-};
-
-const initializeSupabase = () => {
-  if (initializedClient) return initializedClient;
-
-  if (initializationAttempted && SUPABASE_CONFIG_ERROR) {
-    throw SUPABASE_CONFIG_ERROR;
-  }
-
-  initializationAttempted = true;
-
-  try {
-    const { supabaseUrl, supabaseAnonKey } = resolveRuntimeConfig();
-
-    SUPABASE_URL = supabaseUrl;
-    SUPABASE_ANON_KEY = supabaseAnonKey;
-
-    initializedClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        throw createConfigError("Runtime config never loaded");
       }
+
+      const parsedUrl = new URL(SUPABASE_URL);
+
+      if (!/^https?:$/.test(parsedUrl.protocol)) {
+        throw createConfigError(
+          "Supabase runtime config is invalid. Check DIAMOND_SUPABASE_URL and DIAMOND_SUPABASE_ANON_KEY."
+        );
+      }
+
+      supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
+        }
+      });
+      supabase = supabaseClient;
+      hasSupabaseConfig = true;
+      SUPABASE_CONFIG_ERROR = null;
+      globalThis.supabaseClient = supabaseClient;
+      globalThis.supabase = supabaseClient;
+
+      return supabaseClient;
+    })
+    .catch((error) => {
+      SUPABASE_CONFIG_ERROR =
+        error?.code === "SUPABASE_CONFIG_MISSING"
+          ? error
+          : createConfigError(error?.message || "Runtime config never loaded");
+      hasSupabaseConfig = false;
+      supabase = null;
+      supabaseClient = null;
+      globalThis.supabaseClient = null;
+      globalThis.supabase = null;
+      console.error("Supabase config not found", SUPABASE_CONFIG_ERROR);
+      return null;
     });
 
-    SUPABASE_CONFIG_ERROR = null;
-    hasSupabaseConfig = true;
-  } catch (error) {
-    SUPABASE_CONFIG_ERROR =
-      error?.code === "SUPABASE_CONFIG_MISSING"
-        ? error
-        : createConfigError("Supabase runtime config is missing");
-
-    hasSupabaseConfig = false;
-    throw SUPABASE_CONFIG_ERROR;
-  }
-
-  return initializedClient;
+  return initPromise;
 };
 
-const buildClientProxy = () =>
-  new Proxy({}, {
-    get(_target, property) {
-      if (property === "then") return undefined;
+await initializeSupabase();
 
-      const client = initializeSupabase();
-      const value = client[property];
-
-      return typeof value === "function" ? value.bind(client) : value;
-    }
-  });
-
-const supabase = buildClientProxy();
-export { supabase };
+export {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  SUPABASE_CONFIG_ERROR,
+  hasSupabaseConfig,
+  initializeSupabase,
+  supabase,
+  supabaseClient
+};
