@@ -748,8 +748,10 @@ before update on public.site_settings
 for each row
 execute function public.enforce_site_settings_write_rules();
 
+drop function if exists public.admin_save_booking(uuid, text, text, date, integer, text, boolean);
+
 create or replace function public.admin_save_booking(
-  p_booking_id uuid,
+  p_booking_id bigint,
   p_customer_name text,
   p_customer_email text,
   p_event_date date,
@@ -763,16 +765,46 @@ security definer
 set search_path = public
 as $$
 declare
-  v_role text := public.current_admin_role();
+  v_actor_email text := nullif(lower(btrim(coalesce(auth.jwt() ->> 'email', ''))), '');
+  v_actor_role text;
   v_existing public.bookings%rowtype;
+  v_conflict public.bookings%rowtype;
+  v_current_date date;
   v_customer_name text;
   v_customer_email text;
   v_event_date date;
   v_guest_count integer;
+  v_requested_status text := lower(btrim(coalesce(p_status, '')));
   v_status text;
   v_result public.bookings%rowtype;
 begin
-  if not public.is_admin_user() then
+  if auth.role() <> 'authenticated' then
+    raise exception 'Access denied.';
+  end if;
+
+  select coalesce(
+    (
+      select case
+        when lower(coalesce(public.admin_users.role, '')) in ('admin', 'owner', 'super_admin') then 'admin'
+        when lower(coalesce(public.admin_users.role, '')) in ('employee', 'staff', 'staff_admin') then 'employee'
+        when public.admin_users.role is not null then 'employee'
+        else null
+      end
+      from public.admin_users
+      where v_actor_email is not null
+        and lower(public.admin_users.email) = v_actor_email
+      limit 1
+    ),
+    (
+      select public.user_roles.role
+      from public.user_roles
+      where public.user_roles.user_id = auth.uid()
+      limit 1
+    )
+  )
+  into v_actor_role;
+
+  if v_actor_role not in ('admin', 'employee') then
     raise exception 'Access denied.';
   end if;
 
@@ -786,59 +818,83 @@ begin
     raise exception 'Booking not found.';
   end if;
 
-  v_customer_name := coalesce(nullif(btrim(coalesce(p_customer_name, '')), ''), v_existing.customer_name);
+  v_current_date := coalesce(v_existing.event_date, v_existing.booked_date);
+  v_customer_name := case
+    when p_customer_name is null then v_existing.customer_name
+    else coalesce(nullif(btrim(p_customer_name), ''), v_existing.customer_name)
+  end;
   v_customer_email := case
     when p_customer_email is null then v_existing.customer_email
-    else nullif(btrim(p_customer_email), '')
+    else nullif(lower(btrim(p_customer_email)), '')
   end;
-  v_event_date := coalesce(p_event_date, v_existing.event_date);
+  v_event_date := coalesce(p_event_date, v_current_date);
   v_guest_count := coalesce(p_guest_count, v_existing.guest_count);
-  v_status := lower(coalesce(nullif(btrim(coalesce(p_status, '')), ''), v_existing.status));
 
-  if v_role = 'staff_admin'
-    and (v_customer_name is distinct from v_existing.customer_name
-      or coalesce(v_customer_email, '') is distinct from coalesce(v_existing.customer_email, '')) then
-    raise exception 'Staff admins cannot edit protected customer fields.';
-  end if;
-
-  if v_status not in ('pending', 'confirmed', 'cancelled') then
-    raise exception 'Booking status is invalid.';
+  if v_event_date is null then
+    raise exception 'Event date is required.';
   end if;
 
   if v_guest_count is not null and v_guest_count < 1 then
     raise exception 'Guest count must be at least 1.';
   end if;
 
-  if v_status = 'confirmed'
-    and exists (
-      select 1
-      from public.bookings existing
-      where existing.event_date = v_event_date
-        and existing.status = 'confirmed'
-        and existing.id <> p_booking_id
-    ) then
-    if not p_override_conflict then
-      raise exception 'A confirmed booking already exists for this date.';
+  if v_requested_status = '' or v_requested_status = 'pending' then
+    v_status := case
+      when v_existing.status in ('booked', 'available', 'confirmed') then v_existing.status
+      else 'booked'
+    end;
+  elsif v_requested_status = 'cancelled' then
+    v_status := 'available';
+  elsif v_requested_status in ('booked', 'available', 'confirmed') then
+    v_status := v_requested_status;
+  else
+    raise exception 'Booking status is invalid.';
+  end if;
+
+  select *
+  into v_conflict
+  from public.bookings
+  where public.bookings.id <> p_booking_id
+    and coalesce(public.bookings.event_date, public.bookings.booked_date) = v_event_date
+  limit 1
+  for update;
+
+  if found then
+    if v_conflict.booked_date = v_event_date and v_current_date is distinct from v_event_date then
+      raise exception 'A booking record already exists for this date.';
     end if;
 
-    if v_role <> 'super_admin' then
-      raise exception 'Only the super admin can override booking conflicts.';
-    end if;
+    if v_status in ('booked', 'confirmed') and v_conflict.status in ('booked', 'confirmed') then
+      if not coalesce(p_override_conflict, false) then
+        raise exception 'A booking already exists for this date.';
+      end if;
 
-    update public.bookings
-    set status = 'cancelled'
-    where public.bookings.event_date = v_event_date
-      and public.bookings.status = 'confirmed'
-      and public.bookings.id <> p_booking_id;
+      if v_actor_role <> 'admin' then
+        raise exception 'Only admins can override booking conflicts.';
+      end if;
+
+      if v_conflict.booked_date = v_event_date and v_current_date is distinct from v_event_date then
+        raise exception 'A booking record already exists for this date.';
+      end if;
+
+      update public.bookings
+      set
+        status = 'available',
+        event_date = public.bookings.booked_date,
+        updated_at = now()
+      where public.bookings.id = v_conflict.id;
+    end if;
   end if;
 
   update public.bookings
   set
+    booked_date = v_event_date,
+    event_date = v_event_date,
     customer_name = v_customer_name,
     customer_email = v_customer_email,
-    event_date = v_event_date,
     guest_count = v_guest_count,
-    status = v_status
+    status = v_status,
+    updated_at = now()
   where public.bookings.id = p_booking_id
   returning * into v_result;
 
@@ -846,7 +902,7 @@ begin
 end;
 $$;
 
-grant execute on function public.admin_save_booking(uuid, text, text, date, integer, text, boolean)
+grant execute on function public.admin_save_booking(bigint, text, text, date, integer, text, boolean)
 to authenticated;
 
 alter table public.admin_users enable row level security;
