@@ -36,6 +36,10 @@ body {
   min-height: 100%;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body.admin-body {
   position: relative;
   min-height: 100vh;

@@ -1,4 +1,4 @@
-(function () {
+document.addEventListener("DOMContentLoaded", () => {
   "use strict";
 
   const VALID_STATUSES = new Set(["pending", "confirmed", "cancelled"]);
@@ -55,12 +55,41 @@
   };
 
   const refs = {};
+  const REQUIRED_BOOT_REFS = [
+    "app",
+    "loadingOverlay",
+    "loadingText",
+    "loadingActions",
+    "retryButton",
+    "modalLayer",
+    "bookingForm",
+    "bookingFormStatus",
+    "confirmPanel",
+    "confirmAccept",
+    "confirmCancel"
+  ];
 
-  document.addEventListener("DOMContentLoaded", () => {
-    cacheDom();
-    bindEvents();
-    void initializePortal();
-  });
+  console.log("Admin JS Loaded");
+  cacheDom();
+  bindEvents();
+
+  if (!hasRequiredRefs("startup", REQUIRED_BOOT_REFS)) {
+    return;
+  }
+
+  if (!getRuntimeConfig()) {
+    state.client = null;
+    setLoadingState("Missing runtime config. Build and deploy the generated runtime-config.js file.", true);
+    return;
+  }
+
+  if (!getSupabaseCreateClient()) {
+    state.client = null;
+    setLoadingState("Supabase could not be loaded from the CDN.", true);
+    return;
+  }
+
+  void initializePortal();
 
   function cacheDom() {
     refs.app = document.getElementById("admin-app");
@@ -158,156 +187,317 @@
     refs.confirmAccept = document.getElementById("admin-confirm-accept");
   }
 
+  function hasRequiredRefs(context, refNames) {
+    const missing = refNames.filter((refName) => !refs[refName]);
+
+    if (!missing.length) {
+      return true;
+    }
+
+    console.error(`[diamond-admin] ${context} missing required element(s): ${missing.join(", ")}`);
+    return false;
+  }
+
+  function runSafely(context, callback) {
+    try {
+      return callback();
+    } catch (error) {
+      console.error(`[diamond-admin] ${context} failed.`, error);
+      return undefined;
+    }
+  }
+
+  async function runSafelyAsync(context, callback) {
+    try {
+      return await callback();
+    } catch (error) {
+      console.error(`[diamond-admin] ${context} failed.`, error);
+      return undefined;
+    }
+  }
+
+  function reportBootFailure(message, error) {
+    state.client = null;
+
+    if (error) {
+      console.error(message, error);
+    }
+
+    setLoadingState(message, true);
+  }
+
+  function getRuntimeConfig() {
+    const runtimeConfig = window.DIAMOND_RUNTIME_CONFIG;
+    const supabaseUrl = String(runtimeConfig?.SUPABASE_URL || "").trim();
+    const supabaseAnonKey = String(runtimeConfig?.SUPABASE_ANON_KEY || "").trim();
+
+    if (!runtimeConfig || !supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing runtime config");
+
+      if (!runtimeConfig) {
+        console.error("[diamond-admin] window.DIAMOND_RUNTIME_CONFIG is undefined.");
+      } else {
+        console.error("[diamond-admin] Invalid runtime config.", runtimeConfig);
+      }
+
+      return null;
+    }
+
+    return {
+      supabaseUrl,
+      supabaseAnonKey
+    };
+  }
+
+  function getSupabaseCreateClient() {
+    const createClient = window.supabase?.createClient;
+
+    if (typeof createClient !== "function") {
+      console.error("[diamond-admin] Supabase could not be loaded from the CDN.");
+      return null;
+    }
+
+    return createClient;
+  }
+
   function bindEvents() {
     refs.retryButton?.addEventListener("click", () => {
-      void initializePortal();
+      void runSafelyAsync("Retry button", async () => {
+        await initializePortal();
+      });
     });
 
     refs.refreshButton?.addEventListener("click", () => {
-      void fetchBookings({ silent: false });
+      void runSafelyAsync("Refresh button", async () => {
+        await fetchBookings({ silent: false });
+      });
     });
 
     refs.logoutButton?.addEventListener("click", () => {
-      void handleLogout();
+      void runSafelyAsync("Logout button", async () => {
+        await handleLogout();
+      });
     });
 
     refs.navButtons.forEach((button) => {
       button.addEventListener("click", () => {
-        setActiveView(button.dataset.view);
+        runSafely("Navigation button", () => {
+          setActiveView(button.dataset.view);
+        });
       });
     });
 
     refs.searchInput?.addEventListener("input", () => {
-      window.clearTimeout(state.searchTimer);
-      state.searchTimer = window.setTimeout(() => {
-        state.filters.search = String(refs.searchInput.value || "").trim().toLowerCase();
-        renderTable();
-      }, 180);
+      runSafely("Search input", () => {
+        window.clearTimeout(state.searchTimer);
+        state.searchTimer = window.setTimeout(() => {
+          runSafely("Search input debounce", () => {
+            state.filters.search = String(refs.searchInput?.value || "").trim().toLowerCase();
+            renderTable();
+          });
+        }, 180);
+      });
     });
 
     refs.statusFilter?.addEventListener("change", () => {
-      state.filters.status = String(refs.statusFilter.value || "all").trim().toLowerCase() || "all";
-      renderTable();
+      runSafely("Status filter", () => {
+        state.filters.status = String(refs.statusFilter?.value || "all").trim().toLowerCase() || "all";
+        renderTable();
+      });
     });
 
     refs.specificDateFilter?.addEventListener("change", () => {
-      state.filters.specificDate = normalizeDateValue(refs.specificDateFilter.value);
-      renderTable();
+      runSafely("Specific date filter", () => {
+        state.filters.specificDate = normalizeDateValue(refs.specificDateFilter?.value);
+        renderTable();
+      });
     });
 
     refs.startDateFilter?.addEventListener("change", () => {
-      state.filters.startDate = normalizeDateValue(refs.startDateFilter.value);
-      renderTable();
+      runSafely("Start date filter", () => {
+        state.filters.startDate = normalizeDateValue(refs.startDateFilter?.value);
+        renderTable();
+      });
     });
 
     refs.endDateFilter?.addEventListener("change", () => {
-      state.filters.endDate = normalizeDateValue(refs.endDateFilter.value);
-      renderTable();
+      runSafely("End date filter", () => {
+        state.filters.endDate = normalizeDateValue(refs.endDateFilter?.value);
+        renderTable();
+      });
     });
 
     refs.clearFiltersButton?.addEventListener("click", () => {
-      clearFilters();
+      runSafely("Clear filters button", () => {
+        clearFilters();
+      });
     });
 
     refs.tableBody?.addEventListener("click", (event) => {
-      const target = event.target.closest("button[data-action][data-booking-id]");
+      runSafely("Bookings table click", () => {
+        const target =
+          event.target instanceof Element ? event.target.closest("button[data-action][data-booking-id]") : null;
 
-      if (!target) {
-        return;
-      }
+        if (!target) {
+          return;
+        }
 
-      const bookingId = target.dataset.bookingId;
-      const action = target.dataset.action;
+        const bookingId = target.dataset.bookingId;
+        const action = target.dataset.action;
 
-      if (!bookingId || !action) {
-        return;
-      }
+        if (!bookingId || !action) {
+          return;
+        }
 
-      if (action === "approve") {
-        void handleApproveAction(bookingId);
-      }
+        if (action === "approve") {
+          void runSafelyAsync("Approve booking action", async () => {
+            await handleApproveAction(bookingId);
+          });
+        }
 
-      if (action === "cancel") {
-        void saveBooking({
-          bookingId,
-          status: "cancelled",
-          successMessage: "Booking cancelled successfully."
-        });
-      }
+        if (action === "cancel") {
+          void runSafelyAsync("Cancel booking action", async () => {
+            await saveBooking({
+              bookingId,
+              status: "cancelled",
+              successMessage: "Booking cancelled successfully."
+            });
+          });
+        }
 
-      if (action === "edit") {
-        openBookingModal(bookingId);
-      }
+        if (action === "edit") {
+          openBookingModal(bookingId);
+        }
 
-      if (action === "delete") {
-        openDeleteBookingConfirm(bookingId);
-      }
+        if (action === "delete") {
+          openDeleteBookingConfirm(bookingId);
+        }
+      });
     });
 
     refs.dashboardEnquiriesBody?.addEventListener("click", (event) => {
-      const target = event.target.closest("button[data-action][data-enquiry-id]");
+      runSafely("Enquiries table click", () => {
+        const target =
+          event.target instanceof Element ? event.target.closest("button[data-action][data-enquiry-id]") : null;
 
-      if (!target) {
-        return;
-      }
+        if (!target) {
+          return;
+        }
 
-      const enquiryId = Number(target.dataset.enquiryId);
-      const action = target.dataset.action;
+        const enquiryId = Number(target.dataset.enquiryId);
+        const action = target.dataset.action;
 
-      if (!Number.isFinite(enquiryId) || !action) {
-        return;
-      }
+        if (!Number.isFinite(enquiryId) || !action) {
+          return;
+        }
 
-      if (action === "contacted" || action === "booked" || action === "cancelled") {
-        void updateEnquiryStatus(enquiryId, action);
-      }
+        if (action === "contacted" || action === "booked" || action === "cancelled") {
+          void runSafelyAsync("Update enquiry status", async () => {
+            await updateEnquiryStatus(enquiryId, action);
+          });
+        }
 
-      if (action === "delete-enquiry") {
-        openDeleteEnquiryConfirm(enquiryId);
-      }
+        if (action === "delete-enquiry") {
+          openDeleteEnquiryConfirm(enquiryId);
+        }
+      });
     });
 
     refs.pricingForm?.addEventListener("submit", (event) => {
       event.preventDefault();
-      void savePricingSettings();
+      void runSafelyAsync("Pricing form submit", async () => {
+        await savePricingSettings();
+      });
     });
 
     refs.siteProfileForm?.addEventListener("submit", (event) => {
       event.preventDefault();
-      void saveSiteProfile();
+      void runSafelyAsync("Site profile form submit", async () => {
+        await saveSiteProfile();
+      });
     });
 
-    refs.bookingForm?.addEventListener("submit", (event) => {
-      event.preventDefault();
-      void handleBookingFormSubmit();
+    const form = document.getElementById("admin-booking-form");
+
+    if (!form) {
+      console.error("Form not found");
+    } else {
+      console.log("Form detected");
+      refs.bookingForm = form;
+
+      if (form.dataset.submitListenerAttached !== "true") {
+        form.dataset.submitListenerAttached = "true";
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          console.log("Submit clicked");
+          console.log("FORM SUBMIT WORKING");
+          await runSafelyAsync("Booking form submit", async () => {
+            await handleBookingFormSubmit();
+          });
+        });
+      }
+    }
+
+    refs.bookingModalDate?.addEventListener("input", () => {
+      runSafely("Booking modal date input", () => {
+        syncBookingOverrideAvailability();
+      });
+    });
+    refs.bookingModalStatus?.addEventListener("change", () => {
+      runSafely("Booking modal status change", () => {
+        syncBookingOverrideAvailability();
+      });
     });
 
-    refs.bookingModalDate?.addEventListener("input", syncBookingOverrideAvailability);
-    refs.bookingModalStatus?.addEventListener("change", syncBookingOverrideAvailability);
-
-    refs.modalClose?.addEventListener("click", closeModal);
-    refs.bookingModalCancel?.addEventListener("click", closeModal);
-    refs.confirmCancel?.addEventListener("click", closeModal);
+    refs.modalClose?.addEventListener("click", () => {
+      runSafely("Modal close button", () => {
+        closeModal();
+      });
+    });
+    refs.bookingModalCancel?.addEventListener("click", () => {
+      runSafely("Booking modal cancel button", () => {
+        closeModal();
+      });
+    });
+    refs.confirmCancel?.addEventListener("click", () => {
+      runSafely("Confirm modal cancel button", () => {
+        closeModal();
+      });
+    });
     refs.confirmAccept?.addEventListener("click", () => {
-      void handleConfirmAccept();
+      void runSafelyAsync("Confirm modal accept button", async () => {
+        await handleConfirmAccept();
+      });
     });
 
     refs.modalLayer?.addEventListener("click", (event) => {
-      if (event.target === refs.modalLayer && !state.modal.busy) {
-        closeModal();
-      }
+      runSafely("Modal backdrop click", () => {
+        if (event.target === refs.modalLayer && !state.modal.busy) {
+          closeModal();
+        }
+      });
     });
 
     window.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !refs.modalLayer?.hidden && !state.modal.busy) {
-        closeModal();
-      }
+      runSafely("Window keydown", () => {
+        if (event.key === "Escape" && !refs.modalLayer?.hidden && !state.modal.busy) {
+          closeModal();
+        }
+      });
     });
 
-    window.addEventListener("beforeunload", cleanupRealtimeChannel);
+    window.addEventListener("beforeunload", () => {
+      runSafely("Window beforeunload", () => {
+        cleanupRealtimeChannel();
+      });
+    });
   }
 
   async function initializePortal() {
+    if (!hasRequiredRefs("initializePortal", REQUIRED_BOOT_REFS)) {
+      return;
+    }
+
     cleanupRealtimeChannel();
     window.clearTimeout(state.searchTimer);
     state.bookings = new Map();
@@ -324,22 +514,22 @@
     refs.app.hidden = true;
 
     try {
+      const runtimeConfig = getRuntimeConfig();
+      const createClient = getSupabaseCreateClient();
+
+      if (!runtimeConfig) {
+        reportBootFailure("Missing runtime config. Build and deploy the generated runtime-config.js file.");
+        return;
+      }
+
+      if (!createClient) {
+        reportBootFailure("Supabase could not be loaded from the CDN.");
+        return;
+      }
+
       console.log("RUNTIME CONFIG:", window.DIAMOND_RUNTIME_CONFIG);
 
-      const runtimeConfig = window.DIAMOND_RUNTIME_CONFIG || {};
-      const supabaseGlobal = window.supabase;
-      const supabaseUrl = String(runtimeConfig.SUPABASE_URL || "").trim();
-      const supabaseAnonKey = String(runtimeConfig.SUPABASE_ANON_KEY || "").trim();
-
-      if (!supabaseGlobal || typeof supabaseGlobal.createClient !== "function") {
-        throw new Error("Supabase could not be loaded from the CDN.");
-      }
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error("Supabase runtime config is missing. Build and deploy the generated runtime-config.js file.");
-      }
-
-      state.client = supabaseGlobal.createClient(supabaseUrl, supabaseAnonKey, {
+      state.client = createClient(runtimeConfig.supabaseUrl, runtimeConfig.supabaseAnonKey, {
         auth: {
           autoRefreshToken: true,
           persistSession: true,
@@ -429,7 +619,9 @@
       return;
     }
 
-    refs.fetchState.hidden = false;
+    if (refs.fetchState) {
+      refs.fetchState.hidden = false;
+    }
 
     try {
       const { data, error } = await state.client
@@ -465,7 +657,9 @@
 
       setRealtimeStatus("Manual refresh required", "The last fetch failed. Try again.");
     } finally {
-      refs.fetchState.hidden = true;
+      if (refs.fetchState) {
+        refs.fetchState.hidden = true;
+      }
     }
   }
 
@@ -532,6 +726,10 @@
   }
 
   function renderTable() {
+    if (!hasRequiredRefs("renderTable", ["tableBody", "filterSummary", "emptyState", "tableWrap"])) {
+      return;
+    }
+
     const allBookings = getSortedBookings();
     const filteredBookings = getFilteredBookings(allBookings);
     const confirmedByDate = new Map();
@@ -589,6 +787,24 @@
   }
 
   function renderDashboard() {
+    if (
+      !hasRequiredRefs("renderDashboard", [
+        "kpiTotal",
+        "kpiPending",
+        "kpiConfirmed",
+        "kpiCancelled",
+        "dashboardSummary",
+        "dashboardNextBooking",
+        "dashboardEnquiriesSurface",
+        "dashboardEnquiriesSummary",
+        "dashboardEnquiriesBody",
+        "dashboardEnquiriesEmpty",
+        "dashboardEnquiriesWrap"
+      ])
+    ) {
+      return;
+    }
+
     const bookings = getSortedBookings();
     const counts = countStatuses(bookings);
     const nextConfirmed = bookings.find((booking) => booking.status === "confirmed");
@@ -647,6 +863,37 @@
   }
 
   function renderSettings() {
+    if (
+      !hasRequiredRefs("renderSettings", [
+        "userEmail",
+        "userRole",
+        "settingsSessionEmail",
+        "settingsSessionRole",
+        "settingsRealtimeStatus",
+        "settingsLastSync",
+        "settingsRowCount",
+        "settingsEnquiryCountRow",
+        "settingsEnquiryCount",
+        "siteProfileSurface",
+        "pricingHallPrice",
+        "pricingRoomPrice",
+        "pricingRoomCount",
+        "profileHallName",
+        "profileContactNumber",
+        "profileWhatsappNumber",
+        "profileInstagramHandle",
+        "profileGoogleMapsLink",
+        "profileLocationLabel",
+        "profileMapLabel",
+        "profileAddressLine1",
+        "profileAddressLine2",
+        "profileInquiryHours",
+        "profileHallOpen"
+      ])
+    ) {
+      return;
+    }
+
     refs.userEmail.textContent = state.admin?.email || "--";
     refs.userRole.textContent = formatRole(state.admin?.role || "");
     refs.settingsSessionEmail.textContent = state.admin?.email || "--";
@@ -1049,7 +1296,9 @@
       return;
     }
 
-    refs.logoutButton.disabled = true;
+    if (refs.logoutButton) {
+      refs.logoutButton.disabled = true;
+    }
 
     try {
       const { error } = await state.client.auth.signOut();
@@ -1060,7 +1309,9 @@
 
       window.location.replace("login.html");
     } catch (error) {
-      refs.logoutButton.disabled = false;
+      if (refs.logoutButton) {
+        refs.logoutButton.disabled = false;
+      }
       showToast(describeError(error, "Unable to sign out right now."), "error");
     }
   }
@@ -1212,6 +1463,30 @@
       return;
     }
 
+    if (
+      !hasRequiredRefs("openBookingModal", [
+        "modalLayer",
+        "modalEyebrow",
+        "modalTitle",
+        "modalCopy",
+        "bookingForm",
+        "bookingFormStatus",
+        "confirmPanel",
+        "bookingModalName",
+        "bookingModalEmail",
+        "bookingModalDate",
+        "bookingModalGuests",
+        "bookingModalStatus",
+        "bookingOverrideCheckbox",
+        "bookingOverrideRow",
+        "bookingModalNameField",
+        "bookingModalEmailField",
+        "confirmAccept"
+      ])
+    ) {
+      return;
+    }
+
     state.modal.type = "booking";
     state.modal.targetId = bookingId;
     state.modal.onAccept = null;
@@ -1220,6 +1495,7 @@
     refs.modalTitle.textContent = "Edit booking";
     refs.modalCopy.textContent = "Update the booking details and save them to the live system.";
     refs.bookingForm.hidden = false;
+    refs.bookingForm.removeAttribute("hidden");
     refs.confirmPanel.hidden = true;
     refs.bookingFormStatus.textContent = "";
     refs.bookingModalName.value = booking.customerName;
@@ -1237,13 +1513,14 @@
     refs.confirmAccept.classList.remove("admin-button--primary");
     refs.confirmAccept.classList.add("admin-button--danger");
     refs.modalLayer.hidden = false;
+    refs.modalLayer.removeAttribute("hidden");
     syncBookingOverrideAvailability();
 
     window.setTimeout(() => {
       if (isSuperAdmin()) {
-        refs.bookingModalName.focus();
+        refs.bookingModalName?.focus();
       } else {
-        refs.bookingModalDate.focus();
+        refs.bookingModalDate?.focus();
       }
     }, 0);
   }
@@ -1289,6 +1566,21 @@
   }
 
   function openConfirmModal({ eyebrow, title, copy, warning, actionLabel, actionTone, onAccept }) {
+    if (
+      !hasRequiredRefs("openConfirmModal", [
+        "modalLayer",
+        "modalEyebrow",
+        "modalTitle",
+        "modalCopy",
+        "confirmWarning",
+        "confirmAccept",
+        "bookingForm",
+        "confirmPanel"
+      ])
+    ) {
+      return;
+    }
+
     state.modal.type = "confirm";
     state.modal.targetId = null;
     state.modal.onAccept = onAccept;
@@ -1303,13 +1595,18 @@
     refs.bookingForm.hidden = true;
     refs.confirmPanel.hidden = false;
     refs.modalLayer.hidden = false;
+    refs.modalLayer.removeAttribute("hidden");
 
     window.setTimeout(() => {
-      refs.confirmAccept.focus();
+      refs.confirmAccept?.focus();
     }, 0);
   }
 
   async function handleConfirmAccept() {
+    if (!hasRequiredRefs("handleConfirmAccept", ["confirmAccept", "confirmCancel"])) {
+      return;
+    }
+
     if (state.modal.busy || typeof state.modal.onAccept !== "function") {
       return;
     }
@@ -1339,6 +1636,22 @@
     state.modal.targetId = null;
     state.modal.onAccept = null;
     state.modal.busy = false;
+
+    if (
+      !hasRequiredRefs("closeModal", [
+        "modalLayer",
+        "bookingForm",
+        "confirmPanel",
+        "bookingFormStatus",
+        "bookingOverrideCheckbox",
+        "bookingOverrideRow",
+        "confirmAccept",
+        "confirmCancel"
+      ])
+    ) {
+      return;
+    }
+
     refs.modalLayer.hidden = true;
     refs.bookingForm.hidden = true;
     refs.confirmPanel.hidden = true;
@@ -1350,6 +1663,20 @@
   }
 
   async function handleBookingFormSubmit() {
+    if (
+      !hasRequiredRefs("handleBookingFormSubmit", [
+        "bookingModalDate",
+        "bookingModalGuests",
+        "bookingModalStatus",
+        "bookingModalName",
+        "bookingModalEmail",
+        "bookingOverrideCheckbox",
+        "bookingOverrideRow"
+      ])
+    ) {
+      return;
+    }
+
     const bookingId = state.modal.targetId;
     const booking = state.bookings.get(bookingId);
 
@@ -1401,6 +1728,17 @@
   }
 
   function syncBookingOverrideAvailability() {
+    if (
+      !hasRequiredRefs("syncBookingOverrideAvailability", [
+        "bookingModalStatus",
+        "bookingModalDate",
+        "bookingOverrideRow",
+        "bookingOverrideCheckbox"
+      ])
+    ) {
+      return;
+    }
+
     if (state.modal.type !== "booking") {
       return;
     }
@@ -1434,6 +1772,10 @@
   }
 
   function setActiveView(viewName) {
+    if (!hasRequiredRefs("setActiveView", ["headerEyebrow", "pageTitle", "pageSubtitle"])) {
+      return;
+    }
+
     const nextView = VIEW_CONFIG[viewName] ? viewName : "bookings";
 
     state.activeView = nextView;
@@ -1442,6 +1784,11 @@
     });
 
     Object.entries(refs.views).forEach(([name, element]) => {
+      if (!element) {
+        console.error(`[diamond-admin] setActiveView missing required element: ${name}`);
+        return;
+      }
+
       const isActive = name === nextView;
       element.hidden = !isActive;
       element.classList.toggle("is-active", isActive);
@@ -1453,6 +1800,10 @@
   }
 
   function syncIdentity() {
+    if (!hasRequiredRefs("syncIdentity", ["userEmail", "userRole", "settingsSessionEmail", "settingsSessionRole"])) {
+      return;
+    }
+
     refs.userEmail.textContent = state.admin?.email || "--";
     refs.userRole.textContent = formatRole(state.admin?.role || "");
     refs.settingsSessionEmail.textContent = state.admin?.email || "--";
@@ -1510,26 +1861,51 @@
 
   function touchSync() {
     state.lastSyncAt = new Date();
-    refs.settingsLastSync.textContent = formatDateTime(state.lastSyncAt);
+
+    if (refs.settingsLastSync) {
+      refs.settingsLastSync.textContent = formatDateTime(state.lastSyncAt);
+    }
   }
 
   function setRealtimeStatus(status, note) {
     state.realtimeStatus = status;
     state.realtimeNote = note;
-    refs.sidebarSyncStatus.textContent = status;
-    refs.sidebarSyncNote.textContent = note;
-    refs.settingsRealtimeStatus.textContent = status;
+
+    if (refs.sidebarSyncStatus) {
+      refs.sidebarSyncStatus.textContent = status;
+    }
+
+    if (refs.sidebarSyncNote) {
+      refs.sidebarSyncNote.textContent = note;
+    }
+
+    if (refs.settingsRealtimeStatus) {
+      refs.settingsRealtimeStatus.textContent = status;
+    }
   }
 
   function setLoadingState(message, showRetry = false) {
-    refs.loadingOverlay.classList.remove("is-hidden");
-    refs.loadingText.textContent = message;
-    refs.loadingActions.hidden = !showRetry;
+    if (refs.loadingOverlay) {
+      refs.loadingOverlay.classList.remove("is-hidden");
+    }
+
+    if (refs.loadingText) {
+      refs.loadingText.textContent = message;
+    }
+
+    if (refs.loadingActions) {
+      refs.loadingActions.hidden = !showRetry;
+    }
   }
 
   function hideLoadingState() {
-    refs.loadingOverlay.classList.add("is-hidden");
-    refs.loadingActions.hidden = true;
+    if (refs.loadingOverlay) {
+      refs.loadingOverlay.classList.add("is-hidden");
+    }
+
+    if (refs.loadingActions) {
+      refs.loadingActions.hidden = true;
+    }
   }
 
   function setBookingFormStatus(message, tone = "default") {
@@ -1913,4 +2289,4 @@
   function isSuperAdmin() {
     return state.admin?.role === "super_admin";
   }
-})();
+});

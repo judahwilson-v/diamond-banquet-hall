@@ -1,11 +1,6 @@
 import { describeSupabaseError, getCurrentSession, signInAdmin, signOutAdmin } from "./site-data.js";
 import { SUPABASE_CONFIG_ERROR, supabaseClient } from "./supabase-config.js";
 
-const allowedAdmins = new Map([
-  ["judah@diamond.com", "super_admin"],
-  ["empl@diamond.com", "staff_admin"]
-]);
-
 const normalizeEmail = (value) =>
   String(value ?? "")
     .trim()
@@ -14,7 +9,7 @@ const normalizeEmail = (value) =>
 const resolveAdminAccess = async (email) => {
   const normalizedEmail = normalizeEmail(email);
 
-  if (!allowedAdmins.has(normalizedEmail)) {
+  if (!normalizedEmail) {
     return null;
   }
 
@@ -158,11 +153,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const email = normalizeEmail(emailInput?.value);
     const password = String(passwordInput?.value ?? "");
 
-    if (!allowedAdmins.has(email)) {
+    if (!email) {
       showErrorState();
       passwordInput.value = "";
-      setStatus("This email is not allowlisted for the admin portal.", "error");
-      pushToast("This email is not allowlisted for the admin portal.", "error");
+      setStatus("Enter your admin email to continue.", "error");
+      pushToast("Enter your admin email to continue.", "error");
 
       if (submitButton) {
         submitButton.disabled = false;
@@ -188,11 +183,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       const session = await signInAdmin(email, password);
-      const adminAccess = await resolveAdminAccess(email);
+      const sessionEmail = normalizeEmail(session?.user?.email);
+      const adminAccess = await resolveAdminAccess(sessionEmail);
 
       if (!session || !adminAccess) {
         await signOutAdmin();
-        throw new Error("This account is not configured for admin access.");
+        throw new Error("This email is not allowlisted for the admin portal.");
       }
 
       passwordInput.value = "";
