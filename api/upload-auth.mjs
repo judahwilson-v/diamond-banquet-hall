@@ -1,7 +1,12 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 export default function handler(req, res) {
   try {
+    if (req.method !== "GET") {
+      res.setHeader("Allow", "GET");
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
     const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
 
     if (!privateKey) {
