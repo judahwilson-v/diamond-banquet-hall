@@ -24,6 +24,10 @@
   --admin-transition: 0.24s ease;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 *,
 *::before,
 *::after {

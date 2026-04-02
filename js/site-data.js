@@ -339,7 +339,7 @@ export const describeSupabaseError = (error, fallbackMessage) => {
   }
 
   if (error?.code === "PGRST205") {
-    return "The required Supabase table is not set up yet. Run supabase/setup.sql.";
+    return "The hosted data store is not set up yet.";
   }
 
   if (error?.message === "Invalid login credentials") {
@@ -347,7 +347,15 @@ export const describeSupabaseError = (error, fallbackMessage) => {
   }
 
   if (error?.name === "AuthRetryableFetchError") {
-    return "The Supabase connection failed. Check your internet connection and try again.";
+    return "The hosted data service could not be reached. Check your internet connection and try again.";
+  }
+
+  if (error?.status === 401) {
+    return "You need to sign in first.";
+  }
+
+  if (error?.status === 403) {
+    return "You do not have permission to do that.";
   }
 
   if (error?.message) {
@@ -397,6 +405,8 @@ export const normalizeSiteSettings = (raw = {}) => {
     hallStatusOpen:
       typeof hallStatusValue === "boolean"
         ? hallStatusValue
+        : typeof hallStatusValue === "number"
+          ? hallStatusValue !== 0
         : String(hallStatusValue ?? "open").trim().toLowerCase() !== "closed"
   };
 };
@@ -480,7 +490,7 @@ export const fetchBookingAvailabilityWindow = async ({ startDate, endDate } = {}
   return {
     bookedDates,
     bookingRequests: [],
-    source: "supabase"
+    source: "cloudflare-d1"
   };
 };
 
@@ -523,7 +533,7 @@ export const fetchReviews = async ({ visibleOnly = false } = {}) => {
 
   return {
     reviews: normalizeReviewList(reviewRows),
-    source: "supabase",
+    source: "cloudflare-d1",
     warning: null
   };
 };
@@ -548,7 +558,7 @@ export const fetchEnquiries = async () => {
 
   return {
     enquiries: normalizeEnquiryList(data),
-    source: "supabase",
+    source: "cloudflare-d1",
     warning: null
   };
 };

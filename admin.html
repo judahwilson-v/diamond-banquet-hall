@@ -28,7 +28,7 @@
         <p class="admin-loading-panel__eyebrow">Diamond Admin</p>
         <h1 class="admin-loading-panel__title">Preparing your workspace</h1>
         <p class="admin-loading-panel__copy" id="admin-loading-text">
-          Checking your session and loading the shared Supabase workspace.
+          Checking your session and loading the shared booking workspace.
         </p>
         <div class="admin-loading-panel__actions" id="admin-loading-actions" hidden>
           <a class="admin-button admin-button--secondary" href="login.html">Back to Login</a>
@@ -125,7 +125,7 @@
           <p class="admin-sidebar__eyebrow">Diamond Banquet Hall</p>
           <h1>Admin Portal</h1>
           <p class="admin-sidebar__copy">
-            Shared Supabase control room for bookings, enquiries, and venue settings.
+            Shared control room for bookings, enquiries, and venue settings.
           </p>
         </div>
 
@@ -163,7 +163,7 @@
           <p class="admin-sidebar__label">Live Sync</p>
           <p class="admin-sidebar__status" id="sidebar-sync-status">Connecting...</p>
           <p class="admin-sidebar__hint" id="sidebar-sync-note">
-            Waiting for bookings, enquiries, and settings channels.
+            Waiting for the first sync.
           </p>
         </div>
       </aside>
@@ -283,7 +283,7 @@
             <div class="admin-surface__header">
               <div>
                 <p class="admin-surface__eyebrow">Bookings Feed</p>
-                <h3>Realtime booking management</h3>
+                <h3>Booking management</h3>
               </div>
               <button class="admin-button admin-button--primary" id="admin-refresh" type="button">
                 Refresh
@@ -381,7 +381,7 @@
                   <dd id="settings-session-email">--</dd>
                 </div>
                 <div class="admin-settings-list__row">
-                  <dt>Allowlist role</dt>
+                  <dt>Admin role</dt>
                   <dd id="settings-session-role">--</dd>
                 </div>
                 <div class="admin-settings-list__row">
@@ -403,7 +403,7 @@
               </dl>
 
               <p class="admin-settings-note">
-                Access is enforced through Supabase Auth, the `admin_users` allowlist, and database-level rules.
+                Access is enforced through hosted admin sessions and the `admin_users` table.
               </p>
             </section>
 
@@ -527,11 +527,6 @@
     </main>
 
     <script src="/js/runtime-config.js"></script>
-    <script type="module" src="/js/supabase-config.js"></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
-    ></script>
-    <script defer src="/js/admin.js"></script>
+    <script type="module" src="/js/admin.js"></script>
   </body>
 </html>

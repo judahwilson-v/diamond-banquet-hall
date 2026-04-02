@@ -1,3 +1,5 @@
+import "./supabase-config.js";
+
 (function () {
   "use strict";
 
@@ -32,10 +34,11 @@
     pendingBookingIds: new Set(),
     pendingEnquiryIds: new Set(),
     channel: null,
+    pollTimer: 0,
     activeView: "bookings",
     lastSyncAt: null,
     realtimeStatus: "Connecting...",
-    realtimeNote: "Waiting for the shared live channel.",
+    realtimeNote: "Waiting for the first sync.",
     filters: {
       search: "",
       status: "all",
@@ -61,6 +64,10 @@
     bindEvents();
     void initializePortal();
   });
+
+  function coerceBoolean(value) {
+    return value === true || value === 1 || value === "1" || String(value ?? "").toLowerCase() === "true";
+  }
 
   function cacheDom() {
     refs.app = document.getElementById("admin-app");
@@ -164,7 +171,7 @@
     });
 
     refs.refreshButton?.addEventListener("click", () => {
-      void fetchBookings({ silent: false });
+      void refreshPortalData({ silent: false });
     });
 
     refs.logoutButton?.addEventListener("click", () => {
@@ -319,8 +326,8 @@
     state.savingPricing = false;
     state.savingProfile = false;
     closeModal();
-    setRealtimeStatus("Connecting...", "Waiting for bookings, enquiries, and settings channels.");
-    setLoadingState("Checking your session and loading the shared Supabase workspace.");
+    setRealtimeStatus("Connecting...", "Waiting for bookings, enquiries, and settings sync.");
+    setLoadingState("Checking your session and loading the shared booking workspace.");
     refs.app.hidden = true;
 
     try {
@@ -332,11 +339,11 @@
       const supabaseAnonKey = String(runtimeConfig.SUPABASE_ANON_KEY || "").trim();
 
       if (!supabaseGlobal || typeof supabaseGlobal.createClient !== "function") {
-        throw new Error("Supabase could not be loaded from the CDN.");
+        throw new Error("The hosted data client could not be loaded.");
       }
 
       if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error("Supabase runtime config is missing. Build and deploy the generated runtime-config.js file.");
+        throw new Error("Runtime config is missing. Build and deploy the generated runtime-config.js file.");
       }
 
       state.client = supabaseGlobal.createClient(supabaseUrl, supabaseAnonKey, {
@@ -367,11 +374,7 @@
       setActiveView(state.activeView);
       refs.app.hidden = false;
 
-      await Promise.all([
-        fetchBookings({ silent: true }),
-        fetchSiteSettings(),
-        isSuperAdmin() ? fetchEnquiries({ silent: true }) : Promise.resolve()
-      ]);
+      await refreshPortalData({ silent: true });
 
       subscribeToRealtime();
       hideLoadingState();
@@ -398,7 +401,7 @@
     }
 
     if (!data) {
-      showToast("This account is not allowlisted for the admin portal.", "error");
+      showToast("This account is not configured for the admin portal.", "error");
       await state.client.auth.signOut();
       window.setTimeout(() => {
         window.location.replace("login.html");
@@ -529,6 +532,14 @@
       console.error("[diamond-admin] Unable to load site settings.", error);
       showToast(describeError(error, "Unable to load venue settings."), "error");
     }
+  }
+
+  async function refreshPortalData({ silent = false } = {}) {
+    await Promise.all([
+      fetchBookings({ silent }),
+      fetchSiteSettings(),
+      isSuperAdmin() ? fetchEnquiries({ silent }) : Promise.resolve()
+    ]);
   }
 
   function renderTable() {
@@ -835,6 +846,11 @@
       }
 
       state.bookings.delete(bookingId);
+      state.enquiries.forEach((enquiry, enquiryId) => {
+        if (enquiry.bookingId === bookingId) {
+          state.enquiries.delete(enquiryId);
+        }
+      });
       touchSync();
       renderTable();
       renderDashboard();
@@ -1067,46 +1083,11 @@
 
   function subscribeToRealtime() {
     cleanupRealtimeChannel();
-    setRealtimeStatus("Connecting...", "Establishing the shared live channel.");
+    setRealtimeStatus("Auto refresh active", "Bookings, enquiries, and settings refresh every 60 seconds.");
 
-    state.channel = state.client
-      .channel("diamond-admin-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
-        handleBookingRealtime(payload);
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, (payload) => {
-        handleSettingsRealtime(payload);
-      });
-
-    if (isSuperAdmin()) {
-      state.channel.on("postgres_changes", { event: "*", schema: "public", table: "enquiries" }, (payload) => {
-        handleEnquiryRealtime(payload);
-      });
-    }
-
-    state.channel.subscribe((status, error) => {
-      if (status === "SUBSCRIBED") {
-        setRealtimeStatus("Live sync active", "Bookings, enquiries, and settings update instantly.");
-        return;
-      }
-
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        setRealtimeStatus("Realtime unavailable", "Manual refresh is still available.");
-
-        if (error) {
-          showToast(describeError(error, "Realtime sync is temporarily unavailable."), "error");
-        }
-
-        return;
-      }
-
-      if (status === "CLOSED") {
-        setRealtimeStatus("Disconnected", "The live channel has closed.");
-        return;
-      }
-
-      setRealtimeStatus("Connecting...", "Establishing the shared live channel.");
-    });
+    state.pollTimer = window.setInterval(() => {
+      void refreshPortalData({ silent: true });
+    }, 60000);
   }
 
   function handleBookingRealtime(payload) {
@@ -1196,6 +1177,11 @@
   }
 
   function cleanupRealtimeChannel() {
+    if (state.pollTimer) {
+      window.clearInterval(state.pollTimer);
+      state.pollTimer = 0;
+    }
+
     if (!state.client || !state.channel) {
       state.channel = null;
       return;
@@ -1696,6 +1682,7 @@
   function normalizeEnquiry(row) {
     return {
       id: Number(row?.id),
+      bookingId: String(row?.booking_id || "").trim(),
       customerName: normalizeText(row?.customer_name) || "Unknown customer",
       customerPhone: formatPhone(row?.customer_phone),
       eventDate: normalizeDateValue(row?.event_date),
@@ -1720,7 +1707,7 @@
       addressLine2: normalizeText(row?.address_line_2) || "",
       mapLabel: normalizeText(row?.map_label) || "",
       inquiryHours: normalizeText(row?.inquiry_hours) || "",
-      hallStatusOpen: row?.is_hall_open !== false
+      hallStatusOpen: coerceBoolean(row?.is_hall_open)
     };
   }
 
@@ -1900,7 +1887,7 @@
     }
 
     if (error?.name === "AuthRetryableFetchError") {
-      return "The Supabase connection failed. Check your network connection and try again.";
+      return "The hosted data service failed. Check your network connection and try again.";
     }
 
     if (error?.message) {

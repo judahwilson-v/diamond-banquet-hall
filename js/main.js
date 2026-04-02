@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     fetchSiteSettings = siteData.fetchSiteSettings;
     subscribeToVenueUpdates = siteData.subscribeToVenueUpdates;
   } catch (error) {
-    console.warn("Supabase modules failed to load. Rendering the site with safe fallback data.", error);
+    console.warn("Hosted data modules failed to load. Rendering the site with safe fallback data.", error);
   }
 
   const siteHeader = document.querySelector(".site-header");

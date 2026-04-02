@@ -1,0 +1,14 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "diamond-banquet-hall",
+	"compatibility_date": "2026-04-02",
+	"pages_build_output_dir": "./dist",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "diamond-banquet-hall",
+			"database_id": "1ca12f5d-554b-4384-aff2-51bd6c97db84",
+			"preview_database_id": "1ca12f5d-554b-4384-aff2-51bd6c97db84"
+		}
+	]
+}

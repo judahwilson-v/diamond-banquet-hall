@@ -854,8 +854,6 @@ const submitModule = {
     }
 
     const values = this.state.formApi?.readValues?.() ?? {};
-    let whatsappWindow = null;
-    let shouldCloseWhatsAppWindow = false;
 
     if (!this.state.selectedDate) {
       this.state.formApi?.setStatus?.("Choose an available date before submitting.", "error");
@@ -886,14 +884,6 @@ const submitModule = {
       values
     });
     const whatsappHref = buildWhatsAppLink(this.state.siteSettings.whatsappHref, bookingMessage);
-
-    try {
-      whatsappWindow = window.open("", "_blank", "noopener,noreferrer");
-      shouldCloseWhatsAppWindow = Boolean(whatsappWindow);
-    } catch (_error) {
-      whatsappWindow = null;
-      shouldCloseWhatsAppWindow = false;
-    }
 
     this.state.formApi?.clearStatus?.();
     this.setPendingState(true);
@@ -926,37 +916,36 @@ const submitModule = {
         notes: values.notes
       });
 
+      let openedWhatsAppWindow = false;
+
       try {
-        if (whatsappWindow) {
-          shouldCloseWhatsAppWindow = false;
-          whatsappWindow.location.href = whatsappHref;
-        } else {
-          window.open(whatsappHref, "_blank", "noopener,noreferrer");
-        }
+        openedWhatsAppWindow = Boolean(
+          window.open(whatsappHref, "_blank", "noopener,noreferrer")
+        );
       } catch (whatsAppError) {
         console.error("WhatsApp redirect failed", whatsAppError);
       }
 
       this.state.formApi?.setStatus?.(
-        "Booking request sent. WhatsApp is opening with your booking details.",
+        openedWhatsAppWindow
+          ? "Booking request sent. WhatsApp is opening with your booking details."
+          : "Booking request sent. Redirecting to WhatsApp with your booking details.",
         "success"
       );
       successModule.open();
-    } catch (error) {
-      if (shouldCloseWhatsAppWindow && whatsappWindow && !whatsappWindow.closed) {
-        whatsappWindow.close();
-      }
 
+      if (!openedWhatsAppWindow) {
+        window.setTimeout(() => {
+          window.location.assign(whatsappHref);
+        }, 150);
+      }
+    } catch (error) {
       this.state.formApi?.setStatus?.(
         describeSupabaseError(error, "Unable to send your booking request right now."),
         "error"
       );
       this.state.formApi?.focusStatus?.();
     } finally {
-      if (shouldCloseWhatsAppWindow && whatsappWindow && !whatsappWindow.closed) {
-        whatsappWindow.close();
-      }
-
       this.setPendingState(false);
     }
   }
@@ -1015,7 +1004,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyBrandSettings();
 
   if (!supabase || SUPABASE_CONFIG_ERROR) {
-    console.error("Supabase not initialized", SUPABASE_CONFIG_ERROR);
+    console.error("Hosted data client not initialized", SUPABASE_CONFIG_ERROR);
     return;
   }
 

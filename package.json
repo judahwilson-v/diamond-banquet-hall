@@ -5,7 +5,8 @@
   "scripts": {
     "build": "node ./scripts/build.mjs",
     "dev": "npm run build && wrangler pages dev dist",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name diamond-banquet-hall"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name diamond-banquet-hall",
+    "hash:admin": "node ./scripts/hash-admin-password.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.79.0"

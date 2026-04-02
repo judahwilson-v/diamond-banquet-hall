@@ -1,5 +1,5 @@
-// Fallback seed reviews for public rendering if Supabase is unavailable.
-// Supabase is the source of truth once the database is configured.
+// Fallback seed reviews for public rendering if the hosted data service is unavailable.
+// Cloudflare D1 becomes the source of truth once the database is configured.
 
 export const fallbackReviews = [
   {
