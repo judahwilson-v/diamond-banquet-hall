@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gallery | Diamond Banquet Hall</title>
+    <meta
+      name="description"
+      content="Browse the latest wedding, engagement, reception, and corporate event moments captured at Diamond Banquet Hall in Allapra, Perumbavoor."
+    />
+    <meta
+      name="keywords"
+      content="diamond banquet hall gallery, wedding hall photos perumbavoor, event gallery allapra, reception venue images"
+    />
+    <meta property="og:title" content="Gallery | Diamond Banquet Hall" />
+    <meta
+      property="og:description"
+      content="Moments captured at Diamond Banquet Hall across weddings, engagements, receptions, and corporate events."
+    />
+    <meta property="og:image" content="/images-events/wedding-1.jpeg" />
+    <meta property="og:url" content="https://diamondbanquethall.com/gallery.html" />
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://diamondbanquethall.com/gallery.html" />
+    <link rel="icon" href="images/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&amp;family=Playfair+Display:wght@300;400;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="gallery-page">
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a class="site-logo" href="index.html#top">Diamond</a>
+
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          aria-label="Open navigation menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <div class="site-nav__links">
+          <a href="index.html#hall">Hall</a>
+          <a href="index.html#rooms">Rooms</a>
+          <a href="gallery.html" aria-current="page">Gallery</a>
+          <a href="index.html#pricing">Pricing</a>
+          <a href="index.html#reviews">Reviews</a>
+          <a href="index.html#contact">Contact</a>
+        </div>
+      </nav>
+
+      <div class="mobile-menu" id="mobile-menu" hidden>
+        <a href="index.html#hall">Hall</a>
+        <a href="index.html#rooms">Rooms</a>
+        <a href="gallery.html" aria-current="page">Gallery</a>
+        <a href="index.html#pricing">Pricing</a>
+        <a href="index.html#reviews">Reviews</a>
+        <a href="index.html#contact">Contact</a>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="section gallery-page-hero" aria-labelledby="gallery-page-title">
+        <div class="section-heading" data-reveal>
+          <p class="section-heading__eyebrow">Gallery</p>
+          <h1 id="gallery-page-title">Latest Events</h1>
+          <p>Moments captured at Diamond Banquet Hall</p>
+          <span class="section-heading__underline"></span>
+        </div>
+      </section>
+
+      <section class="section gallery-page-section" aria-label="Event gallery">
+        <div
+          class="gallery-filter"
+          data-reveal
+          role="toolbar"
+          aria-label="Filter gallery by event category"
+        >
+          <button
+            class="gallery-filter__button is-active"
+            type="button"
+            data-category="all"
+            aria-pressed="true"
+          >
+            All
+          </button>
+          <button
+            class="gallery-filter__button"
+            type="button"
+            data-category="wedding"
+            aria-pressed="false"
+          >
+            Wedding
+          </button>
+          <button
+            class="gallery-filter__button"
+            type="button"
+            data-category="engagement"
+            aria-pressed="false"
+          >
+            Engagement
+          </button>
+          <button
+            class="gallery-filter__button"
+            type="button"
+            data-category="reception"
+            aria-pressed="false"
+          >
+            Reception
+          </button>
+          <button
+            class="gallery-filter__button"
+            type="button"
+            data-category="corporate"
+            aria-pressed="false"
+          >
+            Corporate
+          </button>
+          <button
+            class="gallery-filter__button"
+            type="button"
+            data-category="hall"
+            aria-pressed="false"
+          >
+            Hall
+          </button>
+          <button
+            class="gallery-filter__button"
+            type="button"
+            data-category="other"
+            aria-pressed="false"
+          >
+            Other
+          </button>
+        </div>
+
+        <div class="gallery-masonry" id="event-gallery" data-reveal>
+          <article class="gallery-card" data-category="corporate">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/wedding-1.jpeg"
+                loading="lazy"
+                data-category="corporate"
+                alt="Conference-style seating arranged inside Diamond Banquet Hall"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="hall">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/wedding-2.jpeg"
+                loading="lazy"
+                data-category="hall"
+                alt="Round table banquet arrangement inside the main hall"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="engagement">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/wedding-3.jpeg"
+                loading="lazy"
+                data-category="engagement"
+                alt="Floral engagement backdrop with illuminated name signage"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="reception">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/engagement-1.jpeg"
+                loading="lazy"
+                data-category="reception"
+                alt="Reception dining tables styled with floral centerpieces"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="other">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/engagement-2.jpeg"
+                loading="lazy"
+                data-category="other"
+                alt="Pastel birthday celebration backdrop inside the banquet hall"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="other">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/engagement-3.jpeg"
+                loading="lazy"
+                data-category="other"
+                alt="Close-up view of a pastel themed event backdrop and dessert table"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="reception">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/reception-1.jpeg"
+                loading="lazy"
+                data-category="reception"
+                alt="Welcome buffet counter prepared for guest service"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="hall">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/reception-2.jpeg"
+                loading="lazy"
+                data-category="hall"
+                alt="Exterior entrance gate of Diamond Banquet Hall prepared for guests"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="engagement">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/reception-3.jpeg"
+                loading="lazy"
+                data-category="engagement"
+                alt="Engagement welcome arch at the entrance of the venue"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="hall">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/corporate-1.jpeg"
+                loading="lazy"
+                data-category="hall"
+                alt="Ceremony aisle layout with floral accents inside the hall"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="engagement">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/corporate-2.jpeg"
+                loading="lazy"
+                data-category="engagement"
+                alt="Guest seating facing a decorated engagement backdrop"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+
+          <article class="gallery-card" data-category="wedding">
+            <div class="gallery-card__media">
+              <img
+                src="/images-events/corporate-3.jpeg"
+                loading="lazy"
+                data-category="wedding"
+                alt="Wedding aisle with floral decor and sofa stage at the far end"
+              />
+            </div>
+            <div class="gallery-card__overlay"></div>
+          </article>
+        </div>
+
+        <div class="gallery-section__actions" data-reveal>
+          <button
+            class="button button--solid gallery-section__button"
+            id="gallery-load-more"
+            type="button"
+          >
+            Load More
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="site-footer__logo" href="index.html#top">Diamond</a>
+      <nav class="site-footer__nav" aria-label="Footer navigation">
+        <a href="index.html#hall">Hall</a>
+        <a href="index.html#rooms">Rooms</a>
+        <a href="gallery.html" aria-current="page">Gallery</a>
+        <a href="index.html#pricing">Pricing</a>
+        <a href="index.html#contact">Contact</a>
+      </nav>
+      <p>© <span id="site-footer-year">2025</span> Diamond Banquet Hall, Allapra. All rights reserved.</p>
+      <p>Designed with care for Diamond Arcade, Perumbavoor</p>
+      <p class="site-footer__staff-link">
+        <a class="site-footer__stealth-link" href="login.html">Admin Login</a>
+      </p>
+    </footer>
+
+    <script src="/js/gallery.js" defer></script>
+  </body>
+</html>
