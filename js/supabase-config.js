@@ -52,9 +52,7 @@ const resolveRuntimeConfig = () => {
 };
 
 const initializeSupabase = () => {
-  if (initializedClient) {
-    return initializedClient;
-  }
+  if (initializedClient) return initializedClient;
 
   if (initializationAttempted && SUPABASE_CONFIG_ERROR) {
     throw SUPABASE_CONFIG_ERROR;
@@ -67,6 +65,7 @@ const initializeSupabase = () => {
 
     SUPABASE_URL = supabaseUrl;
     SUPABASE_ANON_KEY = supabaseAnonKey;
+
     initializedClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         autoRefreshToken: true,
@@ -74,12 +73,15 @@ const initializeSupabase = () => {
         detectSessionInUrl: true
       }
     });
+
     SUPABASE_CONFIG_ERROR = null;
     hasSupabaseConfig = true;
   } catch (error) {
-    SUPABASE_CONFIG_ERROR = error?.code === "SUPABASE_CONFIG_MISSING"
-      ? error
-      : createConfigError("Supabase runtime config is missing");
+    SUPABASE_CONFIG_ERROR =
+      error?.code === "SUPABASE_CONFIG_MISSING"
+        ? error
+        : createConfigError("Supabase runtime config is missing");
+
     hasSupabaseConfig = false;
     throw SUPABASE_CONFIG_ERROR;
   }
@@ -88,53 +90,16 @@ const initializeSupabase = () => {
 };
 
 const buildClientProxy = () =>
-  new Proxy(
-    {},
-    {
-      get(_target, property) {
-        if (property === "then") {
-          return undefined;
-        }
+  new Proxy({}, {
+    get(_target, property) {
+      if (property === "then") return undefined;
 
-        const client = initializeSupabase();
-        const value = client[property];
+      const client = initializeSupabase();
+      const value = client[property];
 
-        return typeof value === "function" ? value.bind(client) : value;
-      }
+      return typeof value === "function" ? value.bind(client) : value;
     }
-  );
+  });
 
 const supabase = buildClientProxy();
-const supabaseClient = supabase;
-
-if (globalThis.document) {
-  if (globalThis.document.readyState === "loading") {
-    globalThis.document.addEventListener(
-      "DOMContentLoaded",
-      () => {
-        try {
-          initializeSupabase();
-        } catch (error) {
-          console.error(error);
-        }
-      },
-      { once: true }
-    );
-  } else {
-    try {
-      initializeSupabase();
-    } catch (error) {
-      console.error(error);
-    }
-  }
-}
-
-export {
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  SUPABASE_CONFIG_ERROR,
-  hasSupabaseConfig,
-  initializeSupabase,
-  supabase,
-  supabaseClient
-};
+export { supabase };
