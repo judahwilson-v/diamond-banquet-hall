@@ -522,6 +522,56 @@
               </div>
             </form>
           </section>
+
+          <section class="admin-surface" id="gallery-manager-surface" hidden>
+            <div class="admin-surface__header">
+              <div>
+                <p class="admin-surface__eyebrow">Gallery Assets</p>
+                <h3>Homepage gallery manager</h3>
+              </div>
+              <button class="admin-button admin-button--secondary" id="gallery-refresh-button" type="button">
+                Refresh Gallery
+              </button>
+            </div>
+
+            <p class="admin-surface__caption" id="gallery-caption">
+              Upload images to the Supabase `venue-images` bucket used by the public homepage gallery.
+            </p>
+
+            <form class="admin-form" id="gallery-upload-form" novalidate>
+              <div class="admin-form-grid">
+                <label class="admin-field admin-field--full" for="gallery-upload-input">
+                  <span>Select Images</span>
+                  <input id="gallery-upload-input" type="file" accept="image/*" multiple />
+                </label>
+              </div>
+
+              <p class="admin-settings-note">
+                Reusing an existing filename replaces that gallery image. Priority names like `hero.jpg`, `hall1.jpg`,
+                `hall2.jpg`, `hall3.jpg`, `room.jpg`, and `parking.jpg` keep the homepage layout predictable.
+              </p>
+
+              <p class="admin-status" id="gallery-upload-status" aria-live="polite"></p>
+
+              <div class="admin-action-stack">
+                <button class="admin-button admin-button--primary" id="gallery-upload-button" type="submit">
+                  Upload Selected Images
+                </button>
+              </div>
+            </form>
+
+            <div class="admin-loading-strip" id="gallery-loading-state" hidden>
+              <div class="admin-spinner admin-spinner--small" aria-hidden="true"></div>
+              <span>Loading gallery assets...</span>
+            </div>
+
+            <div class="admin-empty-state" id="gallery-empty-state" hidden>
+              <h3>No gallery images found</h3>
+              <p>Upload images here to populate the homepage gallery.</p>
+            </div>
+
+            <div class="admin-gallery-grid" id="gallery-grid" aria-live="polite"></div>
+          </section>
         </section>
       </div>
     </main>

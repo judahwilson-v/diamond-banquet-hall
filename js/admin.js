@@ -3,6 +3,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const VALID_STATUSES = new Set(["pending", "confirmed", "cancelled"]);
   const ENQUIRY_STATUSES = new Set(["new", "contacted", "booked", "cancelled"]);
+  const GALLERY_BUCKET = "venue-images";
+  const IMAGE_FILE_PATTERN = /\.(avif|gif|jpe?g|png|webp)$/i;
+  const GALLERY_PRIORITY = ["hero.jpg", "hall1.jpg", "hall2.jpg", "hall3.jpg", "room.jpg", "parking.jpg"];
   const ROLE_LABELS = {
     super_admin: "Super Admin",
     staff_admin: "Staff Admin"
@@ -29,8 +32,10 @@ document.addEventListener("DOMContentLoaded", () => {
     bookings: new Map(),
     enquiries: new Map(),
     siteSettings: null,
+    galleryAssets: [],
     pendingBookingIds: new Set(),
     pendingEnquiryIds: new Set(),
+    pendingGalleryPaths: new Set(),
     channel: null,
     activeView: "bookings",
     lastSyncAt: null,
@@ -46,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
     searchTimer: 0,
     savingPricing: false,
     savingProfile: false,
+    uploadingGallery: false,
     modal: {
       type: null,
       targetId: null,
@@ -157,6 +163,16 @@ document.addEventListener("DOMContentLoaded", () => {
     refs.profileAddressLine2 = document.getElementById("settings-address-line-2");
     refs.profileInquiryHours = document.getElementById("settings-inquiry-hours");
     refs.profileHallOpen = document.getElementById("settings-hall-open");
+    refs.galleryManagerSurface = document.getElementById("gallery-manager-surface");
+    refs.galleryCaption = document.getElementById("gallery-caption");
+    refs.galleryUploadForm = document.getElementById("gallery-upload-form");
+    refs.galleryUploadInput = document.getElementById("gallery-upload-input");
+    refs.galleryUploadStatus = document.getElementById("gallery-upload-status");
+    refs.galleryUploadButton = document.getElementById("gallery-upload-button");
+    refs.galleryRefreshButton = document.getElementById("gallery-refresh-button");
+    refs.galleryLoadingState = document.getElementById("gallery-loading-state");
+    refs.galleryEmptyState = document.getElementById("gallery-empty-state");
+    refs.galleryGrid = document.getElementById("gallery-grid");
     refs.modalLayer = document.getElementById("admin-modal-layer");
     refs.modalClose = document.getElementById("admin-modal-close");
     refs.modalEyebrow = document.getElementById("admin-modal-eyebrow");
@@ -465,6 +481,38 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
+    refs.galleryUploadForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void runSafelyAsync("Gallery upload form submit", async () => {
+        await uploadGalleryAssets();
+      });
+    });
+
+    refs.galleryRefreshButton?.addEventListener("click", () => {
+      void runSafelyAsync("Gallery refresh click", async () => {
+        await fetchGalleryAssets();
+      });
+    });
+
+    refs.galleryGrid?.addEventListener("click", (event) => {
+      runSafely("Gallery grid click", () => {
+        const target = event.target instanceof HTMLElement ? event.target.closest("[data-gallery-action]") : null;
+
+        if (!target) {
+          return;
+        }
+
+        const galleryPath = String(target.dataset.galleryPath || "").trim();
+        const action = String(target.dataset.galleryAction || "").trim();
+
+        if (!galleryPath || action !== "delete-gallery") {
+          return;
+        }
+
+        openDeleteGalleryAssetConfirm(galleryPath);
+      });
+    });
+
     const form = document.getElementById("admin-booking-form");
 
     if (!form) {
@@ -551,11 +599,14 @@ document.addEventListener("DOMContentLoaded", () => {
     state.bookings = new Map();
     state.enquiries = new Map();
     state.siteSettings = null;
+    state.galleryAssets = [];
     state.pendingBookingIds.clear();
     state.pendingEnquiryIds.clear();
+    state.pendingGalleryPaths.clear();
     state.lastSyncAt = null;
     state.savingPricing = false;
     state.savingProfile = false;
+    state.uploadingGallery = false;
     closeModal();
     setRealtimeStatus("Connecting...", "Waiting for bookings, enquiries, and settings channels.");
     setLoadingState("Checking your session and loading the shared Supabase workspace.");
@@ -602,7 +653,8 @@ document.addEventListener("DOMContentLoaded", () => {
       await Promise.all([
         fetchBookings({ silent: true }),
         fetchSiteSettings(),
-        isSuperAdmin() ? fetchEnquiries({ silent: true }) : Promise.resolve()
+        isSuperAdmin() ? fetchEnquiries({ silent: true }) : Promise.resolve(),
+        isSuperAdmin() ? fetchGalleryAssets({ silent: true }) : Promise.resolve()
       ]);
 
       subscribeToRealtime();
@@ -765,6 +817,74 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("[diamond-admin] Unable to load site settings.", error);
       showToast(describeError(error, "Unable to load venue settings."), "error");
+    }
+  }
+
+  async function fetchGalleryAssets({ silent = false } = {}) {
+    if (!state.client || !isSuperAdmin()) {
+      return;
+    }
+
+    if (refs.galleryLoadingState) {
+      refs.galleryLoadingState.hidden = false;
+    }
+
+    try {
+      const { data, error } = await state.client.storage.from(GALLERY_BUCKET).list("", {
+        limit: 100,
+        sortBy: {
+          column: "name",
+          order: "asc"
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const paths = (data || [])
+        .filter((item) => typeof item?.name === "string" && IMAGE_FILE_PATTERN.test(item.name))
+        .sort((left, right) => compareGalleryPaths(left?.name, right?.name));
+
+      const items = await Promise.all(
+        paths.map(async (item) => {
+          try {
+            const { data: signedData, error: signedError } = await state.client.storage
+              .from(GALLERY_BUCKET)
+              .createSignedUrl(item.name, 60 * 60);
+
+            if (signedError) {
+              throw signedError;
+            }
+
+            return {
+              path: item.name,
+              src: signedData?.signedUrl || "",
+              size: Number(item.metadata?.size || 0),
+              updatedAt: item.updated_at || item.created_at || ""
+            };
+          } catch (assetError) {
+            console.error("[diamond-admin] Unable to sign gallery asset URL.", item?.name, assetError);
+            return null;
+          }
+        })
+      );
+
+      state.galleryAssets = items.filter((item) => item?.path && item?.src);
+      touchSync();
+      renderGalleryManager();
+    } catch (error) {
+      console.error("[diamond-admin] Unable to load gallery assets.", error);
+
+      if (!silent) {
+        const message = describeError(error, "Unable to load gallery images.");
+        setStatus(refs.galleryUploadStatus, message, "error");
+        showToast(message, "error");
+      }
+    } finally {
+      if (refs.galleryLoadingState) {
+        refs.galleryLoadingState.hidden = true;
+      }
     }
   }
 
@@ -951,12 +1071,19 @@ document.addEventListener("DOMContentLoaded", () => {
       refs.settingsEnquiryCountRow.hidden = false;
       refs.settingsEnquiryCount.textContent = String(state.enquiries.size);
       refs.siteProfileSurface.hidden = false;
+      if (refs.galleryManagerSurface) {
+        refs.galleryManagerSurface.hidden = false;
+      }
     } else {
       refs.settingsEnquiryCountRow.hidden = true;
       refs.siteProfileSurface.hidden = true;
+      if (refs.galleryManagerSurface) {
+        refs.galleryManagerSurface.hidden = true;
+      }
     }
 
     if (!state.siteSettings) {
+      renderGalleryManager();
       return;
     }
 
@@ -977,6 +1104,104 @@ document.addEventListener("DOMContentLoaded", () => {
       refs.profileInquiryHours.value = state.siteSettings.inquiryHours;
       refs.profileHallOpen.value = state.siteSettings.hallStatusOpen ? "true" : "false";
     }
+
+    renderGalleryManager();
+  }
+
+  function renderGalleryManager() {
+    if (
+      !hasRequiredRefs("renderGalleryManager", [
+        "galleryManagerSurface",
+        "galleryCaption",
+        "galleryUploadButton",
+        "galleryRefreshButton",
+        "galleryUploadInput",
+        "galleryEmptyState",
+        "galleryGrid"
+      ])
+    ) {
+      return;
+    }
+
+    const canManageGallery = isSuperAdmin();
+    refs.galleryManagerSurface.hidden = !canManageGallery;
+
+    if (!canManageGallery) {
+      return;
+    }
+
+    refs.galleryUploadButton.disabled = state.uploadingGallery;
+    refs.galleryRefreshButton.disabled = state.uploadingGallery || state.pendingGalleryPaths.size > 0;
+    refs.galleryUploadInput.disabled = state.uploadingGallery;
+    refs.galleryCaption.textContent = `Public homepage gallery images currently in ${GALLERY_BUCKET}: ${state.galleryAssets.length}`;
+
+    refs.galleryGrid.textContent = "";
+
+    if (!state.galleryAssets.length) {
+      refs.galleryEmptyState.hidden = false;
+      return;
+    }
+
+    refs.galleryEmptyState.hidden = true;
+    const fragment = document.createDocumentFragment();
+
+    state.galleryAssets.forEach((asset) => {
+      const card = document.createElement("article");
+      card.className = "admin-gallery-card";
+
+      const preview = document.createElement("div");
+      preview.className = "admin-gallery-preview";
+      const image = document.createElement("img");
+      image.src = asset.src;
+      image.alt = asset.path;
+      image.loading = "lazy";
+      preview.append(image);
+
+      const body = document.createElement("div");
+      body.className = "admin-gallery-body";
+
+      const title = document.createElement("p");
+      title.className = "admin-gallery-title";
+      title.textContent = asset.path;
+
+      const meta = document.createElement("div");
+      meta.className = "admin-gallery-meta";
+
+      const sizeLine = document.createElement("span");
+      sizeLine.textContent = `Size: ${formatBytes(asset.size)}`;
+      meta.append(sizeLine);
+
+      const updatedLine = document.createElement("span");
+      updatedLine.textContent = asset.updatedAt
+        ? `Updated: ${formatDateTime(asset.updatedAt)}`
+        : "Updated: --";
+      meta.append(updatedLine);
+
+      const actions = document.createElement("div");
+      actions.className = "admin-gallery-actions";
+
+      const openButton = document.createElement("a");
+      openButton.className = "admin-button admin-button--secondary";
+      openButton.href = asset.src;
+      openButton.target = "_blank";
+      openButton.rel = "noreferrer";
+      openButton.textContent = "Open";
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "admin-button admin-button--danger";
+      deleteButton.dataset.galleryAction = "delete-gallery";
+      deleteButton.dataset.galleryPath = asset.path;
+      deleteButton.disabled = state.pendingGalleryPaths.has(asset.path) || state.uploadingGallery;
+      deleteButton.textContent = state.pendingGalleryPaths.has(asset.path) ? "Deleting..." : "Delete";
+
+      actions.append(openButton, deleteButton);
+      body.append(title, meta, actions);
+      card.append(preview, body);
+      fragment.append(card);
+    });
+
+    refs.galleryGrid.append(fragment);
   }
 
   async function handleApproveAction(bookingId) {
@@ -1333,6 +1558,91 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function uploadGalleryAssets() {
+    if (!isSuperAdmin() || !state.client || state.uploadingGallery) {
+      return;
+    }
+
+    const files = Array.from(refs.galleryUploadInput?.files || []).filter((file) => file instanceof File);
+
+    if (!files.length) {
+      setStatus(refs.galleryUploadStatus, "Choose at least one image file to upload.", "error");
+      return;
+    }
+
+    const invalidFile = files.find((file) => {
+      const normalizedName = normalizeGalleryFileName(file.name);
+      return !normalizedName || !IMAGE_FILE_PATTERN.test(normalizedName);
+    });
+
+    if (invalidFile) {
+      setStatus(refs.galleryUploadStatus, `Unsupported image file: ${invalidFile.name}`, "error");
+      return;
+    }
+
+    state.uploadingGallery = true;
+    renderGalleryManager();
+    setStatus(refs.galleryUploadStatus, `Uploading ${files.length} image${files.length === 1 ? "" : "s"}...`);
+
+    try {
+      for (const file of files) {
+        const path = normalizeGalleryFileName(file.name);
+        const { error } = await state.client.storage.from(GALLERY_BUCKET).upload(path, file, {
+          upsert: true,
+          contentType: file.type || undefined
+        });
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      refs.galleryUploadInput.value = "";
+      await fetchGalleryAssets({ silent: true });
+      setStatus(refs.galleryUploadStatus, "Gallery images uploaded successfully.", "success");
+      showToast("Gallery images uploaded successfully.", "success");
+    } catch (error) {
+      console.error("[diamond-admin] Unable to upload gallery images.", error);
+      const message = describeError(error, "Unable to upload gallery images.");
+      setStatus(refs.galleryUploadStatus, message, "error");
+      showToast(message, "error");
+    } finally {
+      state.uploadingGallery = false;
+      renderGalleryManager();
+    }
+  }
+
+  async function deleteGalleryAsset(galleryPath) {
+    if (!isSuperAdmin() || !state.client || !galleryPath || state.pendingGalleryPaths.has(galleryPath)) {
+      return;
+    }
+
+    state.pendingGalleryPaths.add(galleryPath);
+    renderGalleryManager();
+    setStatus(refs.galleryUploadStatus, `Deleting ${galleryPath}...`);
+
+    try {
+      const { error } = await state.client.storage.from(GALLERY_BUCKET).remove([galleryPath]);
+
+      if (error) {
+        throw error;
+      }
+
+      closeModal(true);
+      await fetchGalleryAssets({ silent: true });
+      setStatus(refs.galleryUploadStatus, `${galleryPath} deleted successfully.`, "success");
+      showToast("Gallery image deleted successfully.", "success");
+    } catch (error) {
+      console.error("[diamond-admin] Unable to delete gallery image.", error);
+      const message = describeError(error, "Unable to delete gallery image.");
+      setStatus(refs.galleryUploadStatus, message, "error");
+      showToast(message, "error");
+    } finally {
+      state.pendingGalleryPaths.delete(galleryPath);
+      renderGalleryManager();
+    }
+  }
+
   async function handleLogout() {
     if (!state.client) {
       window.location.replace("login.html");
@@ -1604,6 +1914,24 @@ document.addEventListener("DOMContentLoaded", () => {
       actionTone: "danger",
       onAccept: async () => {
         await deleteEnquiry(enquiryId);
+      }
+    });
+  }
+
+  function openDeleteGalleryAssetConfirm(galleryPath) {
+    if (!isSuperAdmin()) {
+      return;
+    }
+
+    openConfirmModal({
+      eyebrow: "Delete Gallery Image",
+      title: "Delete this gallery image?",
+      copy: `${galleryPath} will be removed from the public gallery bucket.`,
+      warning: "This action cannot be undone.",
+      actionLabel: "Delete Image",
+      actionTone: "danger",
+      onAccept: async () => {
+        await deleteGalleryAsset(galleryPath);
       }
     });
   }
@@ -2173,6 +2501,16 @@ document.addEventListener("DOMContentLoaded", () => {
       .trim();
   }
 
+  function normalizeGalleryFileName(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9._-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
   function normalizeEmail(value) {
     return normalizeText(value).toLowerCase();
   }
@@ -2281,6 +2619,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function formatBytes(value) {
+    const size = Number(value);
+
+    if (!Number.isFinite(size) || size <= 0) {
+      return "Unknown";
+    }
+
+    if (size < 1024) {
+      return `${size} B`;
+    }
+
+    if (size < 1024 * 1024) {
+      return `${(size / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
   function formatPhone(value) {
     const digits = String(value ?? "").replace(/\D/g, "");
 
@@ -2331,5 +2687,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function isSuperAdmin() {
     return state.admin?.role === "super_admin";
+  }
+
+  function compareGalleryPaths(left, right) {
+    const leftName = String(left ?? "").toLowerCase();
+    const rightName = String(right ?? "").toLowerCase();
+    const leftIndex = GALLERY_PRIORITY.indexOf(leftName);
+    const rightIndex = GALLERY_PRIORITY.indexOf(rightName);
+
+    if (leftIndex !== -1 || rightIndex !== -1) {
+      if (leftIndex === -1) {
+        return 1;
+      }
+
+      if (rightIndex === -1) {
+        return -1;
+      }
+
+      return leftIndex - rightIndex;
+    }
+
+    return leftName.localeCompare(rightName);
   }
 });

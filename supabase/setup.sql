@@ -914,6 +914,10 @@ to authenticated;
 grant execute on function public.confirm_booking(uuid, boolean)
 to authenticated;
 
+insert into storage.buckets (id, name, public)
+values ('venue-images', 'venue-images', false)
+on conflict (id) do nothing;
+
 alter table public.admin_users enable row level security;
 alter table public.bookings enable row level security;
 alter table public.booking_requests enable row level security;
@@ -1016,6 +1020,47 @@ for all
 to authenticated
 using (public.is_super_admin())
 with check (public.is_super_admin());
+
+drop policy if exists "Public read venue gallery images" on storage.objects;
+create policy "Public read venue gallery images"
+on storage.objects
+for select
+to public
+using (bucket_id = 'venue-images');
+
+drop policy if exists "Super admins upload venue gallery images" on storage.objects;
+create policy "Super admins upload venue gallery images"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'venue-images'
+  and public.is_super_admin()
+);
+
+drop policy if exists "Super admins update venue gallery images" on storage.objects;
+create policy "Super admins update venue gallery images"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'venue-images'
+  and public.is_super_admin()
+)
+with check (
+  bucket_id = 'venue-images'
+  and public.is_super_admin()
+);
+
+drop policy if exists "Super admins delete venue gallery images" on storage.objects;
+create policy "Super admins delete venue gallery images"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'venue-images'
+  and public.is_super_admin()
+);
 
 do $$
 begin
