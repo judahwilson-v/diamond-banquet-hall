@@ -617,6 +617,164 @@ h3,
   aspect-ratio: 4 / 6;
 }
 
+.gallery-section {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(212, 175, 55, 0.12), transparent 24%),
+    radial-gradient(circle at 88% 14%, rgba(194, 184, 163, 0.22), transparent 20%),
+    linear-gradient(180deg, rgba(252, 250, 246, 0.96) 0%, rgba(244, 238, 228, 0.92) 100%);
+}
+
+.gallery-section .section-heading {
+  justify-items: center;
+  text-align: center;
+  width: min(760px, calc(100vw - 48px));
+}
+
+.gallery-section .section-heading p {
+  color: rgba(10, 10, 10, 0.72);
+}
+
+.gallery-section .gallery-masonry {
+  column-gap: 24px;
+}
+
+.gallery-section .gallery-card {
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 24px;
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+.gallery-section .gallery-card > .gallery-item {
+  margin: 0;
+}
+
+.gallery-section .gallery-masonry > .gallery-item {
+  margin: 0 0 24px;
+}
+
+.gallery-section .gallery-item {
+  position: relative;
+  isolation: isolate;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 245, 236, 0.8)),
+    rgba(255, 255, 255, 0.84);
+  box-shadow:
+    0 22px 56px rgba(10, 10, 10, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gallery-section .gallery-item::before,
+.gallery-section .gallery-item::after {
+  content: "";
+  position: absolute;
+  inset: 11px;
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+.gallery-section .gallery-item::before {
+  border: 1px solid rgba(212, 175, 55, 0.14);
+}
+
+.gallery-section .gallery-item::after {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 10, 0.01) 0%,
+    rgba(10, 10, 10, 0.08) 38%,
+    rgba(10, 10, 10, 0.28) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.gallery-section .gallery-item img {
+  border-radius: 22px;
+  filter: saturate(0.95) contrast(1.03);
+  transition:
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.35s ease;
+}
+
+.gallery-section .gallery-item:hover,
+.gallery-section .gallery-item:focus-visible {
+  transform: translateY(-6px);
+  box-shadow:
+    0 28px 68px rgba(10, 10, 10, 0.14),
+    0 0 0 1px rgba(212, 175, 55, 0.08);
+}
+
+.gallery-section .gallery-item:hover::after,
+.gallery-section .gallery-item:focus-visible::after {
+  opacity: 1;
+}
+
+.gallery-section .gallery-item:hover img,
+.gallery-section .gallery-item:focus-visible img {
+  transform: scale(1.05);
+  filter: saturate(1.02) contrast(1.04);
+}
+
+.gallery-section__actions {
+  width: var(--container);
+  margin: 22px auto 0;
+  display: flex;
+  justify-content: center;
+}
+
+.gallery-section__button {
+  position: relative;
+  min-width: 232px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, #141414, #0a0a0a) padding-box,
+    linear-gradient(135deg, rgba(212, 175, 55, 0.82), rgba(255, 255, 255, 0.9), rgba(212, 175, 55, 0.62))
+      border-box;
+  box-shadow:
+    0 16px 34px rgba(10, 10, 10, 0.16),
+    0 0 0 1px rgba(212, 175, 55, 0.1);
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease,
+    filter 0.35s ease;
+}
+
+.gallery-section__button::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(212, 175, 55, 0.34), rgba(212, 175, 55, 0));
+  opacity: 0;
+  filter: blur(14px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  z-index: -1;
+}
+
+.gallery-section__button:hover,
+.gallery-section__button:focus-visible {
+  transform: translateY(-3px);
+  box-shadow:
+    0 22px 42px rgba(10, 10, 10, 0.2),
+    0 0 22px rgba(212, 175, 55, 0.16);
+}
+
+.gallery-section__button:hover::before,
+.gallery-section__button:focus-visible::before {
+  opacity: 1;
+  transform: scale(1.04);
+}
+
 .pricing-section {
   background: var(--color-black);
   color: var(--color-ivory);
@@ -1986,6 +2144,38 @@ body.keyboard-open .floating-contact-bar {
   }
 
   .gallery-page .gallery-section__button {
+    width: min(100%, 320px);
+  }
+}
+
+@media (max-width: 768px) {
+  .gallery-section .gallery-card,
+  .gallery-section .gallery-masonry > .gallery-item {
+    margin-bottom: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .gallery-section .section-heading {
+    width: min(100%, calc(100vw - 32px));
+  }
+
+  .gallery-section .gallery-item {
+    padding: 10px;
+    border-radius: 24px;
+  }
+
+  .gallery-section .gallery-item::before,
+  .gallery-section .gallery-item::after {
+    inset: 9px;
+    border-radius: 16px;
+  }
+
+  .gallery-section .gallery-item img {
+    border-radius: 16px;
+  }
+
+  .gallery-section__button {
     width: min(100%, 320px);
   }
 }
