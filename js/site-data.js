@@ -338,6 +338,27 @@ export const deriveSiteSettingsSchema = (row = {}) => ({
 });
 
 export const describeSupabaseError = (error, fallbackMessage) => {
+  const message = [
+    error?.message,
+    error?.details,
+    error?.hint,
+    error?.error_description
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const numericCode = Number.parseInt(
+    String(error?.status ?? error?.statusCode ?? error?.code ?? "").trim(),
+    10
+  );
+
+  if (
+    numericCode === 540 ||
+    /project\s+paused|project\s+is\s+paused|has\s+been\s+paused/.test(message)
+  ) {
+    return "The Supabase project is paused. Restore it in Supabase, then refresh and sign in again.";
+  }
+
   if (error?.code === "SUPABASE_CONFIG_MISSING") {
     return error.message;
   }
@@ -350,7 +371,20 @@ export const describeSupabaseError = (error, fallbackMessage) => {
     return "Incorrect email or password.";
   }
 
+  if (
+    numericCode === 401 ||
+    /jwt\s+expired|invalid\s+refresh\s+token|refresh\s+token|auth\s+session|session\s+not\s+found/.test(
+      message
+    )
+  ) {
+    return "Your admin session expired. Sign in again.";
+  }
+
   if (error?.name === "AuthRetryableFetchError") {
+    return "The Supabase connection failed. Check your internet connection and try again.";
+  }
+
+  if (/failed\s+to\s+fetch|fetch\s+failed|networkerror/i.test(message)) {
     return "The Supabase connection failed. Check your internet connection and try again.";
   }
 
@@ -359,6 +393,29 @@ export const describeSupabaseError = (error, fallbackMessage) => {
   }
 
   return fallbackMessage;
+};
+
+export const isSupabaseSessionError = (error) => {
+  const message = [
+    error?.message,
+    error?.details,
+    error?.hint,
+    error?.error_description
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const numericCode = Number.parseInt(
+    String(error?.status ?? error?.statusCode ?? error?.code ?? "").trim(),
+    10
+  );
+
+  return (
+    numericCode === 401 ||
+    /jwt\s+expired|invalid\s+refresh\s+token|refresh\s+token|auth\s+session|session\s+not\s+found/.test(
+      message
+    )
+  );
 };
 
 const createMissingClientError = () => {
@@ -788,6 +845,15 @@ export const signOutAdmin = async () => {
   const { error } = await client.auth.signOut();
 
   if (error) {
+    throw error;
+  }
+};
+
+export const clearLocalAdminSession = async () => {
+  const client = await getSupabaseClientOrThrow();
+  const { error } = await client.auth.signOut({ scope: "local" });
+
+  if (error && Number.parseInt(String(error?.status ?? ""), 10) !== 401) {
     throw error;
   }
 };

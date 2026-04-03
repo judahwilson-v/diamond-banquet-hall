@@ -1,5 +1,10 @@
-import { describeSupabaseError, getCurrentSession, signInAdmin, signOutAdmin } from "./site-data.js";
-import { SUPABASE_CONFIG_ERROR, supabaseClient } from "./supabase-config.js";
+import {
+  clearLocalAdminSession,
+  describeSupabaseError,
+  getCurrentSession,
+  signInAdmin
+} from "./site-data.js";
+import { SUPABASE_CONFIG_ERROR, initializeSupabase } from "./supabase-config.js";
 
 const normalizeEmail = (value) =>
   String(value ?? "")
@@ -13,7 +18,13 @@ const resolveAdminAccess = async (email) => {
     return null;
   }
 
-  const { data, error } = await supabaseClient
+  const client = await initializeSupabase();
+
+  if (!client) {
+    throw new Error("Supabase client is unavailable.");
+  }
+
+  const { data, error } = await client
     .from("admin_users")
     .select("email, role")
     .ilike("email", normalizedEmail)
@@ -128,14 +139,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const email = normalizeEmail(session?.user?.email);
 
     if (email) {
-      const adminAccess = await resolveAdminAccess(email);
+      try {
+        const adminAccess = await resolveAdminAccess(email);
 
-      if (adminAccess) {
-        window.location.replace("admin.html");
-        return;
+        if (adminAccess) {
+          window.location.replace("admin.html");
+          return;
+        }
+
+        await clearLocalAdminSession();
+      } catch (error) {
+        console.error("[diamond-login] Unable to validate the existing session.", error);
+        await clearLocalAdminSession().catch(() => {});
+        const message = describeSupabaseError(error, "Unable to validate the current admin session.");
+        setStatus(message, "error");
+        pushToast(message, "error");
       }
-
-      await signOutAdmin();
     }
   } catch (_error) {
     // Keep the login form visible if session lookup fails.
@@ -182,13 +201,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    let session = null;
+
     try {
-      const session = await signInAdmin(email, password);
+      session = await signInAdmin(email, password);
       const sessionEmail = normalizeEmail(session?.user?.email);
       const adminAccess = await resolveAdminAccess(sessionEmail);
 
       if (!session || !adminAccess) {
-        await signOutAdmin();
+        await clearLocalAdminSession();
         throw new Error("This email is not allowlisted for the admin portal.");
       }
 
@@ -198,6 +219,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.location.replace("admin.html");
     } catch (error) {
       console.error("[diamond-login] Unable to sign in.", error);
+      if (session?.user?.id) {
+        await clearLocalAdminSession().catch(() => {});
+      }
       showErrorState();
       passwordInput.value = "";
       const message = describeSupabaseError(error, "Unable to sign in.");

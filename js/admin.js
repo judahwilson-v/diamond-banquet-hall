@@ -1,3 +1,10 @@
+import {
+  clearLocalAdminSession,
+  describeSupabaseError,
+  isSupabaseSessionError
+} from "./site-data.js";
+import { SUPABASE_CONFIG_ERROR, initializeSupabase } from "./supabase-config.js";
+
 document.addEventListener("DOMContentLoaded", () => {
   "use strict";
 
@@ -83,9 +90,15 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  if (!getRuntimeConfig()) {
+  if (SUPABASE_CONFIG_ERROR) {
     state.client = null;
-    setLoadingState("Missing runtime config. Build and deploy the generated runtime-config.js file.", true);
+    setLoadingState(
+      describeSupabaseError(
+        SUPABASE_CONFIG_ERROR,
+        "Missing runtime config. Build and deploy the generated runtime-config.js file."
+      ),
+      true
+    );
     return;
   }
 
@@ -234,94 +247,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     setLoadingState(message, true);
-  }
-
-  function getRuntimeConfig() {
-    const runtimeConfig = window.DIAMOND_RUNTIME_CONFIG;
-    const supabaseUrl = String(runtimeConfig?.SUPABASE_URL || "").trim();
-    const supabaseAnonKey = String(runtimeConfig?.SUPABASE_ANON_KEY || "").trim();
-
-    if (!runtimeConfig || !supabaseUrl || !supabaseAnonKey) {
-      console.error("Missing runtime config");
-
-      if (!runtimeConfig) {
-        console.error("[diamond-admin] window.DIAMOND_RUNTIME_CONFIG is undefined.");
-      } else {
-        console.error("[diamond-admin] Invalid runtime config.", runtimeConfig);
-      }
-
-      return null;
-    }
-
-    return {
-      supabaseUrl,
-      supabaseAnonKey
-    };
-  }
-
-  const wait = (delayMs) =>
-    new Promise((resolve) => {
-      window.setTimeout(resolve, delayMs);
-    });
-
-  function isUsableSupabaseClient(candidate) {
-    return Boolean(
-      candidate &&
-      typeof candidate.from === "function" &&
-      typeof candidate.auth?.getSession === "function"
-    );
-  }
-
-  function getSupabaseClient() {
-    const existingClient = window.supabaseClient ?? window.supabase;
-
-    if (isUsableSupabaseClient(existingClient)) {
-      return existingClient;
-    }
-
-    return null;
-  }
-
-  function createSupabaseClient(runtimeConfig) {
-    const createClient = window.supabase?.createClient;
-
-    if (typeof createClient !== "function") {
-      return null;
-    }
-
-    const client = createClient(runtimeConfig.supabaseUrl, runtimeConfig.supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    });
-
-    window.supabaseClient = client;
-    return client;
-  }
-
-  async function waitForSupabaseClient(runtimeConfig, timeout = 4000) {
-    const start = Date.now();
-
-    while (Date.now() - start < timeout) {
-      const existingClient = getSupabaseClient();
-
-      if (existingClient) {
-        return existingClient;
-      }
-
-      const createdClient = createSupabaseClient(runtimeConfig);
-
-      if (createdClient) {
-        return createdClient;
-      }
-
-      await wait(50);
-    }
-
-    console.error("[diamond-admin] Supabase client was not initialized.");
-    return null;
   }
 
   function bindEvents() {
@@ -613,20 +538,22 @@ document.addEventListener("DOMContentLoaded", () => {
     refs.app.hidden = true;
 
     try {
-      const runtimeConfig = getRuntimeConfig();
-      if (!runtimeConfig) {
-        reportBootFailure("Missing runtime config. Build and deploy the generated runtime-config.js file.");
+      if (SUPABASE_CONFIG_ERROR) {
+        reportBootFailure(
+          describeSupabaseError(
+            SUPABASE_CONFIG_ERROR,
+            "Missing runtime config. Build and deploy the generated runtime-config.js file."
+          ),
+          SUPABASE_CONFIG_ERROR
+        );
         return;
       }
 
-      const client = await waitForSupabaseClient(runtimeConfig);
+      const client = await initializeSupabase();
 
       if (!client) {
-        reportBootFailure("Supabase client could not be initialized.");
-        return;
+        throw SUPABASE_CONFIG_ERROR ?? new Error("Supabase client could not be initialized.");
       }
-
-      console.log("RUNTIME CONFIG:", window.DIAMOND_RUNTIME_CONFIG);
 
       state.client = client;
 
@@ -684,7 +611,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!data) {
       showToast("This account is not allowlisted for the admin portal.", "error");
-      await state.client.auth.signOut();
+      await clearLocalAdminSession().catch(() => {});
       window.setTimeout(() => {
         window.location.replace("login.html");
       }, 320);
@@ -701,6 +628,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const message = describeError(error, "The admin portal could not be loaded.");
 
     if (message === "Access denied.") {
+      return;
+    }
+
+    if (isSupabaseSessionError(error)) {
+      await clearLocalAdminSession().catch((clearError) => {
+        console.error("[diamond-admin] Unable to clear the local admin session.", clearError);
+      });
+      showToast(message, "error");
+      window.setTimeout(() => {
+        window.location.replace("login.html");
+      }, 320);
       return;
     }
 
@@ -1654,12 +1592,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const { error } = await state.client.auth.signOut();
-
-      if (error) {
-        throw error;
-      }
-
+      await clearLocalAdminSession();
       window.location.replace("login.html");
     } catch (error) {
       if (refs.logoutButton) {
@@ -2670,19 +2603,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function describeError(error, fallbackMessage) {
-    if (error?.message === "Invalid login credentials") {
-      return "Incorrect email or password.";
-    }
-
-    if (error?.name === "AuthRetryableFetchError") {
-      return "The Supabase connection failed. Check your network connection and try again.";
-    }
-
-    if (error?.message) {
-      return error.message;
-    }
-
-    return fallbackMessage;
+    return describeSupabaseError(error, fallbackMessage);
   }
 
   function isSuperAdmin() {
