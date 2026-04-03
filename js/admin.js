@@ -1221,13 +1221,28 @@ document.addEventListener("DOMContentLoaded", () => {
         p_override_conflict: Boolean(overrideConflict)
       };
 
+      let updatedBooking = null;
+      let usedDirectFallback = false;
       const { data, error } = await state.client.rpc("admin_save_booking", payload);
 
       if (error) {
-        throw error;
-      }
+        if (!isMissingAdminSaveBookingRpcError(error)) {
+          throw error;
+        }
 
-      const updatedBooking = normalizeBooking(Array.isArray(data) ? data[0] : data);
+        usedDirectFallback = true;
+        updatedBooking = await saveBookingWithoutRpc({
+          bookingId,
+          customerName: payload.p_customer_name,
+          customerEmail: payload.p_customer_email,
+          eventDate: payload.p_event_date,
+          guestCount: payload.p_guest_count,
+          status: payload.p_status,
+          overrideConflict: payload.p_override_conflict
+        });
+      } else {
+        updatedBooking = normalizeBooking(Array.isArray(data) ? data[0] : data);
+      }
 
       if (updatedBooking.id) {
         if (overrideConflict && updatedBooking.status === "confirmed") {
@@ -1254,6 +1269,9 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSettings();
       state.modal.busy = false;
       closeModal(true);
+      if (usedDirectFallback) {
+        console.warn("[diamond-admin] Falling back to direct bookings update because admin_save_booking is unavailable.");
+      }
       showToast(successMessage, "success");
       return true;
     } catch (error) {
@@ -1269,6 +1287,52 @@ document.addEventListener("DOMContentLoaded", () => {
       renderTable();
       renderDashboard();
     }
+  }
+
+  async function saveBookingWithoutRpc({
+    bookingId,
+    customerName,
+    customerEmail,
+    eventDate,
+    guestCount,
+    status,
+    overrideConflict
+  }) {
+    if (status === "confirmed" && overrideConflict) {
+      const conflictingBooking = Array.from(state.bookings.values()).find((candidate) => {
+        return candidate.id !== bookingId && candidate.eventDate === eventDate && candidate.status === "confirmed";
+      });
+
+      if (conflictingBooking?.id) {
+        const { error: conflictError } = await state.client
+          .from("bookings")
+          .update({ status: "cancelled" })
+          .eq("id", conflictingBooking.id);
+
+        if (conflictError) {
+          throw conflictError;
+        }
+      }
+    }
+
+    const { data, error } = await state.client
+      .from("bookings")
+      .update({
+        customer_name: customerName,
+        customer_email: customerEmail || null,
+        event_date: eventDate,
+        guest_count: guestCount,
+        status
+      })
+      .eq("id", bookingId)
+      .select("id, customer_name, customer_email, event_date, guest_count, status, created_at")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return normalizeBooking(data);
   }
 
   async function deleteBooking(bookingId) {
@@ -2421,6 +2485,17 @@ document.addEventListener("DOMContentLoaded", () => {
   function normalizeStatus(value) {
     const normalized = String(value || "").trim().toLowerCase();
     return VALID_STATUSES.has(normalized) ? normalized : "pending";
+  }
+
+  function isMissingAdminSaveBookingRpcError(error) {
+    const message = String(error?.message || "").toLowerCase();
+    const details = String(error?.details || "").toLowerCase();
+    const hint = String(error?.hint || "").toLowerCase();
+
+    return (
+      error?.code === "PGRST202" &&
+      /admin_save_booking/.test(`${message} ${details} ${hint}`)
+    );
   }
 
   function normalizeEnquiryStatus(value) {
