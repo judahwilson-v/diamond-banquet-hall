@@ -18,6 +18,7 @@ const FALLBACK_SITE_SETTINGS = {
   inquiryHours: "Open for inquiries 9 AM – 9 PM, all days",
   hallStatusOpen: true
 };
+const WEBSITE_URL = "__SITE_URL__";
 
 const fallbackWhatsAppLink = (baseHref, message) => {
   if (!message) {
@@ -211,12 +212,93 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const formatCurrency = (value) => `₹${Number(value).toLocaleString("en-IN")}`;
 
+  const buildPageTitle = () =>
+    `${state.siteSettings.venueName} in ${state.siteSettings.locationLabel} | Wedding & Event Venue`;
+
   const buildMarketingDescription = () =>
-    `Luxury AC banquet hall in ${state.siteSettings.locationLabel}. 250 guests capacity. Hall ${formatCurrency(
-      state.siteSettings.hallPrice
-    )}/4hrs. ${state.siteSettings.roomCount} AC rooms at ${formatCurrency(
-      state.siteSettings.roomPrice
-    )}/night. Book via WhatsApp or call.`;
+    `${state.siteSettings.venueName} is an AC wedding and event venue in ${state.siteSettings.locationLabel}, Kerala with space for 250 guests, ${state.siteSettings.roomCount} AC rooms, parking, and direct WhatsApp booking.`;
+
+  const buildVenueStructuredData = () => ({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${WEBSITE_URL}/#website`,
+        url: `${WEBSITE_URL}/`,
+        name: state.siteSettings.venueName,
+        alternateName: state.siteSettings.shortName,
+        inLanguage: "en-IN"
+      },
+      {
+        "@type": "EventVenue",
+        "@id": `${WEBSITE_URL}/#venue`,
+        name: state.siteSettings.venueName,
+        url: `${WEBSITE_URL}/`,
+        description: `AC wedding and event venue in ${state.siteSettings.locationLabel}, Kerala for weddings, receptions, engagements, and corporate events.`,
+        image: [
+          `${WEBSITE_URL}/images/hero.jpg`,
+          `${WEBSITE_URL}/images/hall1.jpg`,
+          `${WEBSITE_URL}/images/hall2.jpg`,
+          `${WEBSITE_URL}/images/hall3.jpg`
+        ],
+        telephone: state.siteSettings.phoneDisplay,
+        priceRange: "₹₹",
+        hasMap: state.siteSettings.mapsHref,
+        geo: {
+          "@type": "GeoCoordinates",
+          latitude: 10.0977488,
+          longitude: 76.4719763
+        },
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: state.siteSettings.addressLine1,
+          addressLocality: "Perumbavoor",
+          addressRegion: "Kerala",
+          postalCode: "683556",
+          addressCountry: "IN"
+        },
+        openingHoursSpecification: [
+          {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+              "Sunday"
+            ],
+            opens: "09:00",
+            closes: "21:00"
+          }
+        ],
+        amenityFeature: [
+          {
+            "@type": "LocationFeatureSpecification",
+            name: "Fully air-conditioned banquet hall",
+            value: true
+          },
+          {
+            "@type": "LocationFeatureSpecification",
+            name: "Guest rooms",
+            value: true
+          },
+          {
+            "@type": "LocationFeatureSpecification",
+            name: "Valet parking",
+            value: true
+          },
+          {
+            "@type": "LocationFeatureSpecification",
+            name: "Power backup",
+            value: true
+          }
+        ],
+        sameAs: [state.siteSettings.instagramHref, state.siteSettings.mapsHref]
+      }
+    ]
+  });
 
   const extractGalleryItem = (item, index) => {
     const image = item.querySelector("img");
@@ -235,23 +317,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   const fallbackGalleryItems = galleryTriggers.map(extractGalleryItem);
 
   const applyBrandSettings = () => {
-    document.title = `${state.siteSettings.venueName} | ${state.siteSettings.locationLabel}`;
-    document.documentElement.lang = "en";
+    document.title = buildPageTitle();
+    document.documentElement.lang = "en-IN";
 
     document
       .querySelector('meta[name="description"]')
       ?.setAttribute("content", buildMarketingDescription());
     document
-      .querySelector('meta[name="keywords"]')
-      ?.setAttribute(
-        "content",
-        `banquet hall ${state.siteSettings.locationLabel.toLowerCase()}, wedding hall ${state.siteSettings.locationLabel.toLowerCase()}, ac hall kochi, ${state.siteSettings.venueName.toLowerCase()}`
-      );
-    document
       .querySelector('meta[property="og:title"]')
-      ?.setAttribute("content", `${state.siteSettings.venueName} | ${state.siteSettings.locationLabel}`);
+      ?.setAttribute("content", buildPageTitle());
     document
       .querySelector('meta[property="og:description"]')
+      ?.setAttribute("content", buildMarketingDescription());
+    document
+      .querySelector('meta[property="og:site_name"]')
+      ?.setAttribute("content", state.siteSettings.venueName);
+    document
+      .querySelector('meta[name="twitter:title"]')
+      ?.setAttribute("content", buildPageTitle());
+    document
+      .querySelector('meta[name="twitter:description"]')
       ?.setAttribute("content", buildMarketingDescription());
 
     document.querySelectorAll("[data-brand-text]").forEach((element) => {
@@ -314,28 +399,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const structuredDataNode = document.getElementById("venue-structured-data");
 
     if (structuredDataNode) {
-      structuredDataNode.textContent = JSON.stringify(
-        {
-          "@context": "https://schema.org",
-          "@type": "EventVenue",
-          name: state.siteSettings.venueName,
-          url: "https://diamondbanquethall.com",
-          image: "https://diamondbanquethall.com/images/hero.jpg",
-          telephone: state.siteSettings.phoneDisplay,
-          priceRange: "₹₹",
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: state.siteSettings.addressLine1,
-            addressLocality: state.siteSettings.locationLabel,
-            addressRegion: "Kerala",
-            postalCode: "683556",
-            addressCountry: "IN"
-          },
-          sameAs: [state.siteSettings.instagramHref, state.siteSettings.mapsHref]
-        },
-        null,
-        2
-      );
+      structuredDataNode.textContent = JSON.stringify(buildVenueStructuredData(), null, 2);
     }
 
     const footerYear = document.getElementById("site-footer-year");

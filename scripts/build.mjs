@@ -1,9 +1,11 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 
 const rootDir = process.cwd();
 const distDir = join(rootDir, "dist");
 const runtimeConfigPath = join(distDir, "js", "runtime-config.js");
+const DEFAULT_SITE_URL = "https://diamond-banquet-hall.vercel.app";
+const SITE_URL_TOKEN = "__SITE_URL__";
 
 const buildPaths = {
   html: ["index.html", "booking.html", "gallery.html", "admin.html", "login.html", "_headers"],
@@ -13,13 +15,15 @@ const buildPaths = {
 const ENV_VAR_NAMES = {
   url: "DIAMOND_SUPABASE_URL",
   key: "DIAMOND_SUPABASE_ANON_KEY",
-  configFile: "DIAMOND_RUNTIME_CONFIG_FILE"
+  configFile: "DIAMOND_RUNTIME_CONFIG_FILE",
+  siteUrl: "DIAMOND_SITE_URL"
 };
 
 const CLI_FLAG_NAMES = {
   url: new Set(["--supabase-url", "--diamond-supabase-url", "--diamond-supabase-url-env"]),
   key: new Set(["--supabase-anon-key", "--diamond-supabase-anon-key", "--diamond-supabase-anon-key-env"]),
-  configFile: new Set(["--runtime-config-file", "--diamond-runtime-config-file"])
+  configFile: new Set(["--runtime-config-file", "--diamond-runtime-config-file"]),
+  siteUrl: new Set(["--site-url", "--diamond-site-url"])
 };
 
 const toTrimmedString = (value) => String(value ?? "").trim();
@@ -30,7 +34,8 @@ const readCliArgs = (argv) => {
   const args = {
     url: "",
     key: "",
-    configFile: ""
+    configFile: "",
+    siteUrl: ""
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -64,6 +69,11 @@ const readCliArgs = (argv) => {
 
     if (CLI_FLAG_NAMES.configFile.has(normalizedToken)) {
       args.configFile = readFlagValue();
+      continue;
+    }
+
+    if (CLI_FLAG_NAMES.siteUrl.has(normalizedToken)) {
+      args.siteUrl = readFlagValue();
     }
   }
 
@@ -133,6 +143,16 @@ const fileConfig = readRuntimeConfigFile(
   firstNonEmpty(cliArgs.configFile, process.env[ENV_VAR_NAMES.configFile])
 );
 
+const normalizeSiteUrl = (value) => {
+  try {
+    const url = new URL(firstNonEmpty(value, DEFAULT_SITE_URL));
+    const normalizedPath = url.pathname === "/" ? "" : url.pathname.replace(/\/+$/u, "");
+    return `${url.origin}${normalizedPath}`;
+  } catch (error) {
+    return DEFAULT_SITE_URL;
+  }
+};
+
 console.log("ENV CHECK:", {
   url: process.env[ENV_VAR_NAMES.url],
   key: process.env[ENV_VAR_NAMES.key]
@@ -144,6 +164,17 @@ console.log("BUILD CONTEXT:", {
   commit: process.env.CF_PAGES_COMMIT_SHA,
   runtimeConfigFile: firstNonEmpty(cliArgs.configFile, process.env[ENV_VAR_NAMES.configFile]) || null
 });
+
+const siteUrl = normalizeSiteUrl(
+  firstNonEmpty(
+    process.env[ENV_VAR_NAMES.siteUrl],
+    process.env.npm_config_diamond_site_url,
+    cliArgs.siteUrl,
+    fileConfig.SITE_URL,
+    fileConfig.DIAMOND_SITE_URL,
+    DEFAULT_SITE_URL
+  )
+);
 
 const runtimeConfig = {
   SUPABASE_URL: toTrimmedString(
@@ -183,6 +214,60 @@ const ensureDir = (directoryPath) => {
   mkdirSync(directoryPath, { recursive: true });
 };
 
+const replaceSiteUrlToken = (filePath) => {
+  if (!existsSync(filePath)) {
+    return;
+  }
+
+  const fileContent = readFileSync(filePath, "utf8");
+
+  if (!fileContent.includes(SITE_URL_TOKEN)) {
+    return;
+  }
+
+  writeFileSync(filePath, fileContent.replaceAll(SITE_URL_TOKEN, siteUrl), "utf8");
+};
+
+const writeRobotsFile = () => {
+  writeFileSync(
+    join(distDir, "robots.txt"),
+    `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`,
+    "utf8"
+  );
+};
+
+const writeSitemapFile = () => {
+  const pages = [
+    { source: "index.html", path: "/" },
+    { source: "gallery.html", path: "/gallery.html" },
+    { source: "booking.html", path: "/booking.html" }
+  ];
+  const urlEntries = pages
+    .map(({ source, path: urlPath }) => {
+      const lastmod = statSync(join(rootDir, source)).mtime.toISOString();
+
+      return [
+        "  <url>",
+        `    <loc>${siteUrl}${urlPath}</loc>`,
+        `    <lastmod>${lastmod}</lastmod>`,
+        "  </url>"
+      ].join("\n");
+    })
+    .join("\n");
+
+  writeFileSync(
+    join(distDir, "sitemap.xml"),
+    [
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+      "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">",
+      urlEntries,
+      "</urlset>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+};
+
 rmSync(distDir, { recursive: true, force: true });
 ensureDir(distDir);
 
@@ -198,6 +283,13 @@ buildPaths.directories.forEach((directory) => {
     cpSync(sourcePath, targetPath, { recursive: true });
   }
 });
+
+["index.html", "booking.html", "gallery.html", "admin.html", "login.html", "js/main.js"].forEach((filePath) => {
+  replaceSiteUrlToken(join(distDir, filePath));
+});
+
+writeRobotsFile();
+writeSitemapFile();
 
 ensureDir(join(distDir, "js"));
 writeFileSync(

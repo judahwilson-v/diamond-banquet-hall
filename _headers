@@ -1,2 +1,8 @@
 /js/runtime-config.js
   Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0
+
+/admin.html
+  X-Robots-Tag: noindex, nofollow
+
+/login.html
+  X-Robots-Tag: noindex, nofollow

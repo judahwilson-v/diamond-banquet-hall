@@ -8,6 +8,7 @@ The project uses a mix of build-time and runtime variables:
 
 - `DIAMOND_SUPABASE_URL`
 - `DIAMOND_SUPABASE_ANON_KEY`
+- `DIAMOND_SITE_URL` (optional canonical site URL used for SEO metadata, sitemap, and robots.txt. Defaults to `https://diamond-banquet-hall.vercel.app`)
 - `IMAGEKIT_PUBLIC_KEY`
 - `IMAGEKIT_PRIVATE_KEY`
 - `RESEND_API_KEY`
