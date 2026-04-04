@@ -665,7 +665,23 @@
           <h2>What Our Customers Are Saying</h2>
         </div>
 
-        <div class="reviews-track" id="reviews-track" data-reveal></div>
+        <div class="reviews-showcase" id="reviews-track" data-reveal>
+          <div class="reviews-showcase__toolbar">
+            <p class="reviews-showcase__note">Curated guest reviews from Google</p>
+            <button
+              class="reviews-motion-toggle"
+              id="reviews-motion-toggle"
+              type="button"
+              aria-pressed="false"
+            >
+              Pause motion
+            </button>
+          </div>
+
+          <div class="reviews-marquee" id="reviews-marquee" aria-label="Scrolling customer testimonials"></div>
+
+          <div class="reviews-mobile-track" id="reviews-mobile-track" aria-label="Customer testimonials"></div>
+        </div>
 
         <div class="reviews-section__action" data-reveal>
           <a

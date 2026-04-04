@@ -1,3 +1,5 @@
+import { curatedTestimonials } from "./reviews.js";
+
 const FALLBACK_SITE_SETTINGS = {
   venueName: "Diamond Banquet Hall",
   shortName: "Diamond",
@@ -33,11 +35,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   let DEFAULT_SITE_SETTINGS = { ...FALLBACK_SITE_SETTINGS };
   let buildWhatsAppLink = fallbackWhatsAppLink;
   let fetchBookedDates = async () => [];
-  let fetchReviews = async () => ({
-    reviews: [],
-    source: "fallback",
-    warning: null
-  });
   let fetchGalleryAssets = async () => [];
   let fetchSiteSettings = async () => ({
     settings: { ...FALLBACK_SITE_SETTINGS },
@@ -50,7 +47,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     DEFAULT_SITE_SETTINGS = siteData.DEFAULT_SITE_SETTINGS;
     buildWhatsAppLink = siteData.buildWhatsAppLink;
     fetchBookedDates = siteData.fetchBookedDates;
-    fetchReviews = siteData.fetchReviews;
     fetchGalleryAssets = siteData.fetchGalleryAssets ?? fetchGalleryAssets;
     fetchSiteSettings = siteData.fetchSiteSettings;
     subscribeToVenueUpdates = siteData.subscribeToVenueUpdates;
@@ -81,6 +77,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const lightboxNext = document.getElementById("lightbox-next");
   const faqButtons = document.querySelectorAll(".faq-item__button");
   const reviewsTrack = document.getElementById("reviews-track");
+  const reviewsMarquee = document.getElementById("reviews-marquee");
+  const reviewsMobileTrack = document.getElementById("reviews-mobile-track");
+  const reviewsMotionToggle = document.getElementById("reviews-motion-toggle");
   const reviewLink = document.getElementById("reviews-link");
   const revealTargets = document.querySelectorAll("[data-reveal]");
   const floatingContactBar = document.querySelector(".floating-contact-bar");
@@ -91,15 +90,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const cursorDot = cursorLayer?.querySelector(".luxury-cursor__dot");
   const cursorRing = cursorLayer?.querySelector(".luxury-cursor__ring");
   const interactiveTargets = Array.from(document.querySelectorAll("a, button"));
+  const reviewsMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const reviewsMarqueeBreakpoint = 768;
   let baseViewportHeight = window.innerHeight;
   let unsubscribeLiveData = null;
   let refreshTimer = null;
+  let reviewsAreManuallyPaused = false;
 
   const state = {
     siteSettings: { ...DEFAULT_SITE_SETTINGS },
     bookedDateSet: new Set(),
     bookingAvailabilityState: "loading",
-    reviews: [],
     galleryItems: [],
     currentMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     selectedDate: null,
@@ -409,41 +410,174 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
-  const buildReviewCard = (review) => {
-    const article = createElement("article", "review-card");
-    const stars = createElement("p", "review-card__stars", "★★★★★");
-    const text = createElement("p", "review-card__text", review.text);
-    const meta = createElement("div", "review-card__meta");
-    const name = createElement("span", "review-card__name", review.name);
-    const event = createElement(
-      "span",
-      "review-card__event",
-      `${review.event} · ${review.date}`
-    );
+  const reviewNeedsExpandControl = (review) =>
+    `${review.text} ${review.translation ?? ""}`.trim().length > 220;
 
-    stars.setAttribute("aria-label", "5 out of 5 stars");
-    meta.append(name, event);
-    article.append(stars, text, meta);
-    return article;
-  };
-
-  const renderReviews = () => {
+  const updateReviewExpandedState = () => {
     if (!reviewsTrack) {
       return;
     }
 
-    if (!state.reviews.length) {
-      const placeholder = buildReviewCard({
-        name: "Diamond Banquet Hall",
-        event: "Guest Experiences",
-        date: "Live",
-        text: "Customer reviews will appear here once they are added to the live reviews table."
-      });
-      reviewsTrack.replaceChildren(placeholder);
+    const hasExpandedCard = Boolean(
+      reviewsTrack.querySelector(".review-card.is-expanded:not(.review-card--clone)")
+    );
+
+    reviewsTrack.classList.toggle("has-expanded-card", hasExpandedCard);
+  };
+
+  const updateReviewsMotionToggle = () => {
+    if (!reviewsMotionToggle) {
       return;
     }
 
-    reviewsTrack.replaceChildren(...state.reviews.map(buildReviewCard));
+    reviewsMotionToggle.textContent = reviewsAreManuallyPaused ? "Play motion" : "Pause motion";
+    reviewsMotionToggle.setAttribute("aria-pressed", String(reviewsAreManuallyPaused));
+  };
+
+  const canAnimateReviews = () =>
+    Boolean(reviewsTrack && reviewsMarquee) &&
+    !reviewsMotionQuery.matches &&
+    window.innerWidth > reviewsMarqueeBreakpoint;
+
+  const measureReviewMarquee = () => {
+    if (!reviewsMarquee) {
+      return;
+    }
+
+    const marqueeIsActive = canAnimateReviews();
+
+    reviewsMarquee.querySelectorAll(".reviews-marquee__lane").forEach((lane) => {
+      const primaryTrack = lane.querySelector(".reviews-marquee__track");
+
+      if (!primaryTrack) {
+        return;
+      }
+
+      const computedStyle = window.getComputedStyle(primaryTrack);
+      const gap = Number.parseFloat(computedStyle.gap || computedStyle.columnGap || "0") || 0;
+      const distance = primaryTrack.scrollWidth;
+
+      lane.style.setProperty("--reviews-distance", `${distance}px`);
+      lane.style.setProperty("--review-gap", `${gap}px`);
+      lane.classList.toggle("is-ready", marqueeIsActive && distance > 0);
+    });
+  };
+
+  const syncReviewPresentationMode = () => {
+    if (!reviewsTrack) {
+      return;
+    }
+
+    const marqueeIsActive = canAnimateReviews();
+
+    reviewsTrack.classList.toggle("is-static", !marqueeIsActive);
+    reviewsTrack.classList.toggle("is-animated", marqueeIsActive);
+
+    if (!marqueeIsActive) {
+      reviewsAreManuallyPaused = false;
+      reviewsTrack.classList.remove("is-manually-paused");
+      updateReviewsMotionToggle();
+    }
+
+    if (reviewsMotionToggle) {
+      reviewsMotionToggle.hidden = !marqueeIsActive;
+    }
+
+    measureReviewMarquee();
+  };
+
+  const buildReviewCard = (review, { duplicate = false } = {}) => {
+    const article = createElement("article", "review-card");
+    const stars = createElement("p", "review-card__stars", "★★★★★");
+    const body = createElement("div", "review-card__body");
+    const text = createElement("p", "review-card__text", review.text);
+    const meta = createElement("div", "review-card__meta");
+    const name = createElement("span", "review-card__name", review.name);
+    const source = createElement("span", "review-card__source", "Google Review");
+    const isLongReview = reviewNeedsExpandControl(review);
+
+    article.dataset.reviewId = review.id;
+    stars.setAttribute("aria-label", "5 out of 5 stars");
+
+    if (duplicate) {
+      article.classList.add("review-card--clone");
+      article.setAttribute("aria-hidden", "true");
+    } else {
+      article.tabIndex = 0;
+    }
+
+    if (review.translation) {
+      text.lang = "ml";
+    }
+
+    body.append(text);
+
+    if (review.translation) {
+      const translation = createElement(
+        "p",
+        "review-card__translation",
+        `English: ${review.translation}`
+      );
+      body.append(translation);
+    }
+
+    meta.append(name, source);
+    article.append(stars, body);
+
+    if (isLongReview && !duplicate) {
+      const toggle = createElement("button", "review-card__toggle", "Read full review");
+      toggle.type = "button";
+      toggle.setAttribute("aria-expanded", "false");
+
+      toggle.addEventListener("click", () => {
+        const isExpanded = article.classList.toggle("is-expanded");
+        toggle.textContent = isExpanded ? "Show less" : "Read full review";
+        toggle.setAttribute("aria-expanded", String(isExpanded));
+        updateReviewExpandedState();
+        measureReviewMarquee();
+      });
+
+      article.append(toggle);
+    }
+
+    article.append(meta);
+    return article;
+  };
+
+  const buildReviewLane = (reviews, durationSeconds) => {
+    const lane = createElement("div", "reviews-marquee__lane");
+    const primaryTrack = createElement("div", "reviews-marquee__track");
+    const cloneTrack = createElement("div", "reviews-marquee__track reviews-marquee__track--clone");
+
+    lane.style.setProperty("--reviews-duration", `${durationSeconds}s`);
+    cloneTrack.setAttribute("aria-hidden", "true");
+
+    primaryTrack.append(...reviews.map((review) => buildReviewCard(review)));
+    cloneTrack.append(...reviews.map((review) => buildReviewCard(review, { duplicate: true })));
+    lane.append(primaryTrack, cloneTrack);
+
+    return lane;
+  };
+
+  const renderReviews = () => {
+    if (!reviewsTrack || !reviewsMarquee || !reviewsMobileTrack) {
+      return;
+    }
+
+    const midpoint = Math.ceil(curatedTestimonials.length / 2);
+    const laneGroups = [
+      curatedTestimonials.slice(0, midpoint),
+      curatedTestimonials.slice(midpoint)
+    ].filter((reviews) => reviews.length);
+
+    reviewsMarquee.replaceChildren(
+      ...laneGroups.map((reviews, index) => buildReviewLane(reviews, 44 + index * 8))
+    );
+    reviewsMobileTrack.replaceChildren(...curatedTestimonials.map((review) => buildReviewCard(review)));
+
+    updateReviewExpandedState();
+    syncReviewPresentationMode();
+    window.requestAnimationFrame(measureReviewMarquee);
   };
 
   const getGalleryVariantClass = (index) => {
@@ -921,13 +1055,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-      const results = await Promise.allSettled([
-        fetchSiteSettings(),
-        fetchBookedDates(),
-        fetchReviews({ visibleOnly: true })
-      ]);
+      const results = await Promise.allSettled([fetchSiteSettings(), fetchBookedDates()]);
 
-      const [settingsResult, bookingsResult, reviewsResult] = results;
+      const [settingsResult, bookingsResult] = results;
 
       if (settingsResult.status === "fulfilled") {
         state.siteSettings = settingsResult.value.settings;
@@ -953,11 +1083,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderCalendar();
       updateCalendarSelection();
 
-      if (reviewsResult.status === "fulfilled") {
-        state.reviews = reviewsResult.value.reviews;
-        renderReviews();
-      }
-
       state.lastDynamicRefreshAt = now;
     } catch (_error) {
       state.bookingAvailabilityState = state.bookedDateSet.size ? "stale" : "error";
@@ -972,9 +1097,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       onBookingsChange: () => {
         void refreshDynamicData(true);
       },
-      onReviewsChange: () => {
-        void refreshDynamicData(true);
-      },
       onSettingsChange: () => {
         void refreshDynamicData(true);
       }
@@ -987,6 +1109,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   applyBrandSettings();
   renderReviews();
+  updateReviewsMotionToggle();
   state.galleryItems = fallbackGalleryItems;
   renderGallery(state.galleryItems);
   renderCalendar();
@@ -1011,6 +1134,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   navToggle?.addEventListener("click", toggleMobileMenu);
+  reviewsMotionToggle?.addEventListener("click", () => {
+    reviewsAreManuallyPaused = !reviewsAreManuallyPaused;
+    reviewsTrack?.classList.toggle("is-manually-paused", reviewsAreManuallyPaused);
+    updateReviewsMotionToggle();
+  });
   mobileMenu?.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", closeMobileMenu);
   });
@@ -1052,10 +1180,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     syncKeyboardState();
+    syncReviewPresentationMode();
   });
 
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", syncKeyboardState);
+  }
+
+  if (typeof reviewsMotionQuery.addEventListener === "function") {
+    reviewsMotionQuery.addEventListener("change", syncReviewPresentationMode);
   }
 
   window.addEventListener("focus", () => {
