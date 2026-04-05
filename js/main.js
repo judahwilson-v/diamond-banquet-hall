@@ -55,7 +55,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const siteHeader = document.querySelector(".site-header");
-  const navLinks = Array.from(document.querySelectorAll(".site-nav__links a"));
   const navToggle = document.querySelector(".nav-toggle");
   const mobileMenu = document.getElementById("mobile-menu");
   const calendarModal = document.getElementById("calendar-modal");
@@ -86,10 +85,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const openCalendarButtons = document.querySelectorAll("[data-open-calendar]");
   const galleryContainer = document.querySelector(".gallery-masonry");
   let galleryTriggers = Array.from(document.querySelectorAll("[data-gallery-item]"));
-  const cursorLayer = document.querySelector(".luxury-cursor");
-  const cursorDot = cursorLayer?.querySelector(".luxury-cursor__dot");
-  const cursorRing = cursorLayer?.querySelector(".luxury-cursor__ring");
-  const interactiveTargets = Array.from(document.querySelectorAll("a, button"));
   const reviewsMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const reviewsMarqueeBreakpoint = 768;
   let baseViewportHeight = window.innerHeight;
@@ -217,7 +212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     `${state.siteSettings.venueName} in ${state.siteSettings.locationLabel} | Wedding & Event Venue`;
 
   const buildMarketingDescription = () =>
-    `${state.siteSettings.venueName} is an AC wedding and event venue in ${state.siteSettings.locationLabel}, Kerala with space for 250 guests, ${state.siteSettings.roomCount} AC rooms, parking, and direct WhatsApp booking.`;
+    `${state.siteSettings.venueName} is an AC wedding and event venue in ${state.siteSettings.locationLabel}, Kerala with space for 250 guests, valet parking, hourly office room hire, and direct WhatsApp booking.`;
 
   const buildVenueStructuredData = () => ({
     "@context": "https://schema.org",
@@ -282,7 +277,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           },
           {
             "@type": "LocationFeatureSpecification",
-            name: "Guest rooms",
+            name: "Air-conditioned office and meeting room",
             value: true
           },
           {
@@ -361,14 +356,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (key === "roomPriceAmount") {
         element.textContent = `₹${Number(state.siteSettings.roomPrice).toLocaleString("en-IN")}`;
-      }
-
-      if (key === "roomSummary") {
-        element.textContent = `${state.siteSettings.roomCount} air-conditioned rooms for your guests`;
-      }
-
-      if (key === "roomAvailabilityLine") {
-        element.textContent = `${state.siteSettings.roomCount} AC rooms available`;
       }
 
       if (key === "hallFeatureChip") {
@@ -892,97 +879,43 @@ document.addEventListener("DOMContentLoaded", async () => {
     revealTargets.forEach((target) => observer.observe(target));
   };
 
-  const initializeMagneticHover = () => {
-    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-      return;
+  const SECTION_NAV_IDS = ["hall", "office", "gallery", "pricing", "reviews", "contact"];
+
+  let navSpyFrame = 0;
+
+  const updateSectionNav = () => {
+    navSpyFrame = 0;
+    const navLinks = document.querySelectorAll(
+      '.site-nav__links a[href^="#"], .mobile-menu a[href^="#"], .site-footer__nav a[href^="#"]'
+    );
+    const marker = window.scrollY + window.innerHeight * 0.34;
+    let activeId = null;
+
+    for (const id of SECTION_NAV_IDS) {
+      const section = document.getElementById(id);
+
+      if (!section) {
+        continue;
+      }
+
+      if (section.offsetTop <= marker) {
+        activeId = id;
+      }
     }
 
     navLinks.forEach((link) => {
-      const resetTransform = () => {
-        link.style.transform = "translate3d(0, 0, 0)";
-      };
-
-      link.addEventListener("pointermove", (event) => {
-        const rect = link.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const offsetX = (event.clientX - centerX) * 0.18;
-        const offsetY = (event.clientY - centerY) * 0.18;
-        const translateX = Math.max(-15, Math.min(15, offsetX));
-        const translateY = Math.max(-15, Math.min(15, offsetY));
-
-        link.style.transform = `translate3d(${translateX}px, ${translateY}px, 0)`;
-      });
-
-      link.addEventListener("pointerleave", resetTransform);
-      link.addEventListener("blur", resetTransform);
+      const href = link.getAttribute("href");
+      const match = href && href.startsWith("#") ? href.slice(1) : null;
+      link.classList.toggle("is-active", Boolean(match) && Boolean(activeId) && match === activeId);
     });
   };
 
-  const initializeCustomCursor = () => {
-    if (!cursorLayer || !cursorDot || !cursorRing) {
+  const scheduleSectionNavUpdate = () => {
+    if (navSpyFrame) {
       return;
     }
 
-    const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
-
-    if (!finePointerQuery.matches) {
-      cursorLayer.remove();
-      return;
-    }
-
-    document.body.classList.add("has-custom-cursor");
-
-    let pointerX = window.innerWidth / 2;
-    let pointerY = window.innerHeight / 2;
-    let ringX = pointerX;
-    let ringY = pointerY;
-
-    const renderCursor = () => {
-      ringX += (pointerX - ringX) * 0.18;
-      ringY += (pointerY - ringY) * 0.18;
-
-      cursorDot.style.transform = `translate3d(${pointerX}px, ${pointerY}px, 0) translate(-50%, -50%)`;
-      cursorRing.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
-
-      window.requestAnimationFrame(renderCursor);
-    };
-
-    window.requestAnimationFrame(renderCursor);
-
-    window.addEventListener("pointermove", (event) => {
-      pointerX = event.clientX;
-      pointerY = event.clientY;
-      cursorLayer.classList.add("is-visible");
-    });
-
-    window.addEventListener("pointerdown", () => {
-      cursorLayer.classList.add("is-pressed");
-    });
-
-    window.addEventListener("pointerup", () => {
-      cursorLayer.classList.remove("is-pressed");
-    });
-
-    window.addEventListener("pointercancel", () => {
-      cursorLayer.classList.remove("is-pressed");
-    });
-
-    document.addEventListener("mouseout", (event) => {
-      if (!event.relatedTarget) {
-        cursorLayer.classList.remove("is-visible");
-      }
-    });
-
-    interactiveTargets.forEach((element) => {
-      element.addEventListener("pointerenter", () => {
-        cursorLayer.classList.add("is-hovering");
-      });
-
-      element.addEventListener("pointerleave", () => {
-        cursorLayer.classList.remove("is-hovering");
-      });
-    });
+    navSpyFrame = window.requestAnimationFrame(updateSectionNav);
   };
 
   const initializeFaq = () => {
@@ -1115,10 +1048,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderCalendar();
   updateCalendarSelection();
   handleReveal();
-  initializeCustomCursor();
-  initializeMagneticHover();
   initializeFaq();
   toggleHeader();
+  updateSectionNav();
   syncKeyboardState();
   setVisibility(calendarModal, true);
   setVisibility(lightbox, true);
@@ -1169,7 +1101,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  window.addEventListener("scroll", toggleHeader, { passive: true });
+  window.addEventListener(
+    "scroll",
+    () => {
+      toggleHeader();
+      scheduleSectionNavUpdate();
+    },
+    { passive: true }
+  );
   window.addEventListener("resize", () => {
     if (window.innerWidth > 768) {
       closeMobileMenu();
@@ -1181,6 +1120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     syncKeyboardState();
     syncReviewPresentationMode();
+    scheduleSectionNavUpdate();
   });
 
   if (window.visualViewport) {
