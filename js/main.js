@@ -843,12 +843,66 @@ document.addEventListener("DOMContentLoaded", async () => {
     openLightbox(state.lightboxIndex);
   };
 
-  const toggleHeader = () => {
-    if (!siteHeader) {
-      return;
-    }
 
-    siteHeader.classList.toggle("is-scrolled", window.scrollY > 24);
+  /**
+   * High-end Custom Cursor Logic
+   */
+  const initializeCustomCursor = () => {
+    const cursor = document.getElementById("custom-cursor");
+    if (!cursor) return;
+
+    window.addEventListener("mousemove", (e) => {
+      cursor.style.left = `${e.clientX}px`;
+      cursor.style.top = `${e.clientY}px`;
+    });
+
+    document.addEventListener("mousedown", () => {
+      cursor.style.transform = "translate(-50%, -50%) scale(0.8)";
+    });
+
+    document.addEventListener("mouseup", () => {
+      cursor.style.transform = "translate(-50%, -50%) scale(1)";
+    });
+
+    const interactables = "a, button, input, textarea, [role='button']";
+    document.querySelectorAll(interactables).forEach((el) => {
+      el.addEventListener("mouseenter", () => cursor.classList.add("is-hovering"));
+      el.addEventListener("mouseleave", () => cursor.classList.remove("is-hovering"));
+    });
+  };
+
+  /**
+   * Magnetic Hover Effect for Luxury Interactivity
+   */
+  const initializeMagneticHover = () => {
+    const magneticTargets = document.querySelectorAll(".site-logo, .hero h1, .button--solid");
+    
+    magneticTargets.forEach((target) => {
+      target.addEventListener("mousemove", (e) => {
+        const { left, top, width, height } = target.getBoundingClientRect();
+        const x = e.clientX - (left + width / 2);
+        const y = e.clientY - (top + height / 2);
+        
+        target.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+      });
+
+      target.addEventListener("mouseleave", () => {
+        target.style.transform = "translate(0, 0)";
+      });
+    });
+  };
+
+  const toggleHeader = () => {
+    const header = document.querySelector(".site-header");
+    const concierge = document.getElementById("mobile-concierge");
+    if (!header) return;
+
+    const isScrolled = window.scrollY > 24;
+    header.classList.toggle("is-scrolled", isScrolled);
+    
+    if (concierge) {
+      concierge.classList.toggle("is-visible", window.scrollY > 300);
+    }
   };
 
   const handleReveal = () => {
@@ -1049,6 +1103,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateCalendarSelection();
   handleReveal();
   initializeFaq();
+  initializeCustomCursor();
+  initializeMagneticHover();
   toggleHeader();
   updateSectionNav();
   syncKeyboardState();

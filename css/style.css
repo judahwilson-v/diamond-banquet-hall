@@ -12,7 +12,9 @@
   --shadow-soft: 0 18px 36px rgba(10, 10, 10, 0.1);
   --border-soft: 1px solid rgba(10, 10, 10, 0.08);
   --nav-height: 72px;
+  --color-gold-glow: rgba(212, 175, 55, 0.45);
 }
+
 
 html,
 body {
@@ -1286,12 +1288,14 @@ section[id] {
 
 .review-card__text {
   -webkit-line-clamp: 6;
+  line-clamp: 6;
   font-style: italic;
   color: rgba(10, 10, 10, 0.78);
 }
 
 .review-card__translation {
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   color: rgba(10, 10, 10, 0.6);
   font-size: 0.94rem;
 }
@@ -2675,3 +2679,97 @@ body.keyboard-open .floating-contact-bar {
   }
 }
 
+/* Custom Interactive Cursor */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--color-gold);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: difference;
+  transition:
+    transform 0.15s ease,
+    width 0.3s ease,
+    height 0.3s ease,
+    background 0.3s ease;
+  transform: translate(-50%, -50%);
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .custom-cursor {
+    display: block;
+  }
+
+  .custom-cursor.is-hovering {
+    width: 64px;
+    height: 64px;
+    background: var(--color-white);
+    mix-blend-mode: difference;
+  }
+}
+
+/* Mobile Concierge Bar */
+.mobile-concierge {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 72px;
+  background: rgba(249, 249, 249, 0.05);
+  backdrop-filter: blur(16px) saturate(1.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 1000;
+  box-shadow: 0 -10px 40px rgba(10, 10, 10, 0.15);
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mobile-concierge.is-visible {
+  transform: translateY(0);
+}
+
+.mobile-concierge__btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mobile-concierge__btn--whatsapp {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
+.mobile-concierge__btn--book {
+  background: var(--color-gold);
+  color: var(--color-black);
+  margin-left: 12px;
+}
+
+@media (min-width: 769px) {
+  .mobile-concierge {
+    display: none;
+  }
+}
+
+/* Magnetic Interaction Support */
+.magnetic-wrap {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}

@@ -33,12 +33,46 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const toggleHeader = () => {
-    if (!siteHeader) {
-      return;
-    }
+    const header = document.querySelector(".site-header");
+    if (!header) return;
 
-    siteHeader.classList.toggle("is-scrolled", window.scrollY > 24);
+    header.classList.toggle("is-scrolled", window.scrollY > 24);
   };
+
+  const initializeCustomCursor = () => {
+    const cursor = document.getElementById("custom-cursor");
+    if (!cursor) return;
+
+    window.addEventListener("mousemove", (e) => {
+      cursor.style.left = `${e.clientX}px`;
+      cursor.style.top = `${e.clientY}px`;
+    });
+
+    const interactables = "a, button, input, textarea, [role='button']";
+    document.querySelectorAll(interactables).forEach((el) => {
+      el.addEventListener("mouseenter", () => cursor.classList.add("is-hovering"));
+      el.addEventListener("mouseleave", () => cursor.classList.remove("is-hovering"));
+    });
+  };
+
+  const initializeMagneticHover = () => {
+    const magneticTargets = document.querySelectorAll(".site-logo, .gallery-filter__button, .button");
+    
+    magneticTargets.forEach((target) => {
+      target.addEventListener("mousemove", (e) => {
+        const { left, top, width, height } = target.getBoundingClientRect();
+        const x = e.clientX - (left + width / 2);
+        const y = e.clientY - (top + height / 2);
+        
+        target.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+      });
+
+      target.addEventListener("mouseleave", () => {
+        target.style.transform = "translate(0, 0)";
+      });
+    });
+  };
+
 
   let revealObserver = null;
 
@@ -170,6 +204,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   revealTargets.forEach((target) => queueReveal(target));
+  initializeCustomCursor();
+  initializeMagneticHover();
   syncFilterButtons();
   renderGallery();
   toggleHeader();
