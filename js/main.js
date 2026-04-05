@@ -837,11 +837,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!galleryTriggers.length) {
       return;
     }
-
     state.lightboxIndex =
       (state.lightboxIndex + direction + galleryTriggers.length) % galleryTriggers.length;
     openLightbox(state.lightboxIndex);
   };
+
+
+  /**
+   * Luxury Preloader Control (with fail-safe)
+   */
+  const dismissPreloader = () => {
+    const preloader = document.getElementById("site-preloader");
+    if (preloader && !preloader.classList.contains("is-loaded")) {
+      preloader.classList.add("is-loaded");
+      
+      setTimeout(() => {
+        const heroContent = document.querySelector(".hero__content");
+        if (heroContent) heroContent.classList.add("is-visible");
+      }, 400);
+    }
+  };
+
+  // Immediate check if window is already loaded
+  if (document.readyState === "complete") {
+    dismissPreloader();
+  } else {
+    window.addEventListener("load", dismissPreloader);
+  }
+
+  // Mandatory fail-safe (shows site after 3s max even if some image is slow)
+  setTimeout(dismissPreloader, 3000);
 
 
   /**
@@ -875,14 +900,14 @@ document.addEventListener("DOMContentLoaded", async () => {
    * Magnetic Hover Effect for Luxury Interactivity
    */
   const initializeMagneticHover = () => {
-    const magneticTargets = document.querySelectorAll(".site-logo, .hero h1, .button--solid");
-    
+    const magneticTargets = document.querySelectorAll(".site-logo, .button--solid");
+    const heroTitle = document.querySelector(".hero h1");
+
     magneticTargets.forEach((target) => {
       target.addEventListener("mousemove", (e) => {
         const { left, top, width, height } = target.getBoundingClientRect();
         const x = e.clientX - (left + width / 2);
         const y = e.clientY - (top + height / 2);
-        
         target.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
       });
 
@@ -890,6 +915,65 @@ document.addEventListener("DOMContentLoaded", async () => {
         target.style.transform = "translate(0, 0)";
       });
     });
+
+    if (heroTitle) {
+      heroTitle.addEventListener("mousemove", (e) => {
+        const { left, top, width, height } = heroTitle.getBoundingClientRect();
+        const centerX = left + width / 2;
+        const centerY = top + height / 2;
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+
+        // 3D Tilt Calculation
+        const rotateX = ((mouseY - centerY) / (height / 2)) * -12; // -12 to 12 degrees
+        const rotateY = ((mouseX - centerX) / (width / 2)) * 12; // -12 to 12 degrees
+        
+        // Horizontal Translation (Magnetic)
+        const moveX = (mouseX - centerX) * 0.05;
+        const moveY = (mouseY - centerY) * 0.05;
+
+        // Rim Light Shimmer Calculation
+        const shimmerX = ((mouseX - centerX) / (width / 2)) * 100 + 50;
+
+        heroTitle.style.transform = `perspective(1000px) translate3d(${moveX}px, ${moveY}px, 20px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        heroTitle.style.setProperty("--shimmer-pos", `${shimmerX}%`);
+        
+        // Dynamically update the ::after pseudo element's background via property
+        const shine = heroTitle.style;
+        const backgroundPos = 150 - (shimmerX * 1.5);
+        heroTitle.classList.add('has-tilt');
+        heroTitle.style.setProperty('--shine-pos', `${backgroundPos}%`);
+      });
+
+      heroTitle.addEventListener("mouseleave", () => {
+        heroTitle.style.transform = "perspective(1000px) translate3d(0, 0, 0) rotateX(0) rotateY(0)";
+        heroTitle.style.setProperty('--shine-pos', '150%');
+        heroTitle.classList.remove('has-tilt');
+      });
+    }
+  };
+
+
+  /**
+   * Cinematic Scroll Parallax
+   */
+  const initializeParallax = () => {
+    const heroMedia = document.querySelector(".hero__media");
+    if (!heroMedia) return;
+
+    let ticking = false;
+
+    window.addEventListener("scroll", () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const depth = 0.18; // Speed of movement
+          const movement = window.scrollY * depth;
+          heroMedia.style.setProperty("--hero-parallax", `${movement}px`);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
   };
 
   const toggleHeader = () => {
@@ -906,6 +990,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   const handleReveal = () => {
+    const revealTargets = Array.from(document.querySelectorAll("[data-reveal]"));
+
     if (
       window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
       !("IntersectionObserver" in window)
@@ -914,19 +1000,32 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const observer = new IntersectionObserver(
-      (entries, revealObserver) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) {
-            return;
-          }
+    let revealQueue = [];
+    const flushQueue = () => {
+      revealQueue.forEach((el, index) => {
+        el.style.transitionDelay = `${index * 80}ms`;
+        el.classList.add("is-visible");
+      });
+      revealQueue = [];
+    };
 
-          entry.target.classList.add("is-visible");
-          revealObserver.unobserve(entry.target);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          
+          const target = entry.target;
+          revealQueue.push(target);
+          observer.unobserve(target);
         });
+
+        if (revealQueue.length) {
+          window.requestAnimationFrame(flushQueue);
+        }
       },
-      {
-        threshold: 0.15
+      { 
+        threshold: 0.1, 
+        rootMargin: "0px 0px -8% 0px" 
       }
     );
 
@@ -1105,7 +1204,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   initializeFaq();
   initializeCustomCursor();
   initializeMagneticHover();
+  initializeParallax();
   toggleHeader();
+
   updateSectionNav();
   syncKeyboardState();
   setVisibility(calendarModal, true);
