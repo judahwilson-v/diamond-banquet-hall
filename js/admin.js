@@ -26,11 +26,21 @@ document.addEventListener("DOMContentLoaded", () => {
       title: "Bookings",
       subtitle: "Filter the live queue, approve or cancel requests, and edit protected records safely."
     },
-    settings: {
-      title: "Settings",
-      subtitle: "Manage pricing, inspect connection health, and update venue controls by role."
+    "price-controls": {
+      title: "Price Control",
+      subtitle: "Adjust hall pricing, room pricing, and booking capacity from one place."
+    },
+    "venue-controls": {
+      title: "Venue Controls",
+      subtitle: "Update contact details, hall status, and the public venue profile."
+    },
+    "gallery-assets": {
+      title: "Gallery Assets",
+      subtitle: "Upload, refresh, and remove homepage gallery images from storage."
     }
   };
+  const SETTINGS_CONTAINER_VIEWS = new Set(["price-controls", "venue-controls", "gallery-assets"]);
+  const SUPER_ADMIN_ONLY_VIEWS = new Set(["venue-controls", "gallery-assets"]);
 
   const state = {
     client: null,
@@ -135,6 +145,9 @@ document.addEventListener("DOMContentLoaded", () => {
       bookings: document.getElementById("view-bookings"),
       settings: document.getElementById("view-settings")
     };
+    refs.settingsGrid = document.getElementById("settings-grid");
+    refs.settingsStatusSurface = document.getElementById("settings-status-surface");
+    refs.pricingSurface = document.getElementById("pricing-surface");
     refs.kpiTotal = document.getElementById("kpi-total");
     refs.kpiPending = document.getElementById("kpi-pending");
     refs.kpiConfirmed = document.getElementById("kpi-confirmed");
@@ -1008,20 +1021,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isSuperAdmin()) {
       refs.settingsEnquiryCountRow.hidden = false;
       refs.settingsEnquiryCount.textContent = String(state.enquiries.size);
-      refs.siteProfileSurface.hidden = false;
-      if (refs.galleryManagerSurface) {
-        refs.galleryManagerSurface.hidden = false;
-      }
     } else {
       refs.settingsEnquiryCountRow.hidden = true;
-      refs.siteProfileSurface.hidden = true;
-      if (refs.galleryManagerSurface) {
-        refs.galleryManagerSurface.hidden = true;
-      }
     }
+
+    syncNavVisibility();
 
     if (!state.siteSettings) {
       renderGalleryManager();
+      syncSettingsSections();
       return;
     }
 
@@ -1044,6 +1052,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderGalleryManager();
+    syncSettingsSections();
   }
 
   function renderGalleryManager() {
@@ -1062,9 +1071,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const canManageGallery = isSuperAdmin();
-    refs.galleryManagerSurface.hidden = !canManageGallery;
 
     if (!canManageGallery) {
+      refs.galleryGrid.textContent = "";
+      refs.galleryEmptyState.hidden = true;
+      syncSettingsSections();
       return;
     }
 
@@ -1077,6 +1088,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!state.galleryAssets.length) {
       refs.galleryEmptyState.hidden = false;
+      syncSettingsSections();
       return;
     }
 
@@ -1140,6 +1152,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     refs.galleryGrid.append(fragment);
+    syncSettingsSections();
   }
 
   async function handleApproveAction(bookingId) {
@@ -2139,12 +2152,59 @@ document.addEventListener("DOMContentLoaded", () => {
     renderTable();
   }
 
+  function canAccessView(viewName) {
+    return !SUPER_ADMIN_ONLY_VIEWS.has(viewName) || isSuperAdmin();
+  }
+
+  function getContainerView(viewName) {
+    return SETTINGS_CONTAINER_VIEWS.has(viewName) ? "settings" : viewName;
+  }
+
+  function syncNavVisibility() {
+    refs.navButtons.forEach((button) => {
+      const viewName = String(button.dataset.view || "").trim();
+      const isSuperAdminOnly = button.dataset.superAdminOnly === "true";
+
+      button.hidden = isSuperAdminOnly && !isSuperAdmin();
+      button.disabled = !canAccessView(viewName);
+    });
+  }
+
+  function syncSettingsSections() {
+    const showPriceControls = state.activeView === "price-controls";
+    const showVenueControls = state.activeView === "venue-controls" && isSuperAdmin();
+    const showGalleryAssets = state.activeView === "gallery-assets" && isSuperAdmin();
+
+    if (refs.settingsGrid) {
+      refs.settingsGrid.hidden = !showPriceControls;
+    }
+
+    if (refs.settingsStatusSurface) {
+      refs.settingsStatusSurface.hidden = !showPriceControls;
+    }
+
+    if (refs.pricingSurface) {
+      refs.pricingSurface.hidden = !showPriceControls;
+    }
+
+    if (refs.siteProfileSurface) {
+      refs.siteProfileSurface.hidden = !showVenueControls;
+    }
+
+    if (refs.galleryManagerSurface) {
+      refs.galleryManagerSurface.hidden = !showGalleryAssets;
+    }
+  }
+
   function setActiveView(viewName) {
     if (!hasRequiredRefs("setActiveView", ["headerEyebrow", "pageTitle", "pageSubtitle"])) {
       return;
     }
 
-    const nextView = VIEW_CONFIG[viewName] ? viewName : "bookings";
+    syncNavVisibility();
+    const requestedView = VIEW_CONFIG[viewName] ? viewName : "bookings";
+    const nextView = canAccessView(requestedView) ? requestedView : "bookings";
+    const containerView = getContainerView(nextView);
 
     state.activeView = nextView;
     refs.navButtons.forEach((button) => {
@@ -2157,7 +2217,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const isActive = name === nextView;
+      const isActive = name === containerView;
       element.hidden = !isActive;
       element.classList.toggle("is-active", isActive);
     });
@@ -2165,6 +2225,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refs.headerEyebrow.textContent = VIEW_CONFIG[nextView].title;
     refs.pageTitle.textContent = VIEW_CONFIG[nextView].title;
     refs.pageSubtitle.textContent = VIEW_CONFIG[nextView].subtitle;
+    syncSettingsSections();
   }
 
   function syncIdentity() {
@@ -2176,6 +2237,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refs.userRole.textContent = formatRole(state.admin?.role || "");
     refs.settingsSessionEmail.textContent = state.admin?.email || "--";
     refs.settingsSessionRole.textContent = formatRole(state.admin?.role || "");
+    syncNavVisibility();
   }
 
   function getSortedBookings() {

@@ -151,11 +151,31 @@
           <button
             class="admin-nav__button"
             type="button"
-            data-view="settings"
-            data-title="Settings"
-            data-subtitle="Manage pricing, inspect connection health, and update venue controls by role."
+            data-view="price-controls"
+            data-title="Price Control"
+            data-subtitle="Adjust hall pricing, room pricing, and core booking capacity settings."
           >
-            Settings
+            Price Control
+          </button>
+          <button
+            class="admin-nav__button"
+            type="button"
+            data-view="venue-controls"
+            data-title="Venue Controls"
+            data-subtitle="Update contact details, hall status, and venue profile information."
+            data-super-admin-only="true"
+          >
+            Venue Controls
+          </button>
+          <button
+            class="admin-nav__button"
+            type="button"
+            data-view="gallery-assets"
+            data-title="Gallery Assets"
+            data-subtitle="Upload, refresh, and remove homepage gallery images from storage."
+            data-super-admin-only="true"
+          >
+            Gallery Assets
           </button>
         </nav>
 
@@ -366,8 +386,8 @@
         </section>
 
         <section class="admin-view" id="view-settings" hidden aria-labelledby="admin-page-title">
-          <div class="admin-settings-grid">
-            <section class="admin-surface">
+          <div class="admin-settings-grid" id="settings-grid" hidden>
+            <section class="admin-surface" id="settings-status-surface">
               <div class="admin-surface__header">
                 <div>
                   <p class="admin-surface__eyebrow">Connection Profile</p>
@@ -407,7 +427,7 @@
               </p>
             </section>
 
-            <section class="admin-surface">
+            <section class="admin-surface" id="pricing-surface">
               <div class="admin-surface__header">
                 <div>
                   <p class="admin-surface__eyebrow">Pricing Controls</p>

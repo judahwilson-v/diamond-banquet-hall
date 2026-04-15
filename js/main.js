@@ -233,7 +233,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         description: `AC wedding and event venue in ${state.siteSettings.locationLabel}, Kerala for weddings, receptions, engagements, and corporate events.`,
         image: [
           `${WEBSITE_URL}/images/hero.jpg`,
-          `${WEBSITE_URL}/images/hall1.jpg`,
+          `${WEBSITE_URL}/images/original-hall-gallery-5.webp`,
           `${WEBSITE_URL}/images/hall2.jpg`,
           `${WEBSITE_URL}/images/hall3.jpg`
         ],
