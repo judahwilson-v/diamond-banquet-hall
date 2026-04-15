@@ -1,47 +1,33 @@
-# diamond-banquet-hall
+# Diamond Banquet Hall
 
-Static marketing site and admin portal for Diamond Banquet Hall.
+A static marketing site and full-featured admin portal designed exclusively for the Diamond Banquet Hall venue. Built to serve as a contact-first digital front door with seamless booking and gallery management.
 
-## Required environment variables
+## 🛠 Tech Stack & Services
+- Static UI delivery via HTML/CSS/JS
+- Hosted on **Vercel** with Serverless API Routes (`/api`)
+- **Supabase** for database and storage
+- **ImageKit** for optimized image handling
+- **Resend** for transactional email handling
 
-The project uses a mix of build-time and runtime variables:
+## 🚀 Environment Variables setup
 
-- `DIAMOND_SUPABASE_URL`
-- `DIAMOND_SUPABASE_ANON_KEY`
-- `DIAMOND_SITE_URL` (optional canonical site URL used for SEO metadata, sitemap, and robots.txt. Defaults to `https://diamond-banquet-hall.vercel.app`)
-- `IMAGEKIT_PUBLIC_KEY`
-- `IMAGEKIT_PRIVATE_KEY`
-- `RESEND_API_KEY`
-- `BOOKING_ADMIN_EMAIL` (optional override)
-- `RESEND_FROM_EMAIL` (optional override)
+The project requires several environment variables for production functionality. See `.env.example` to get started locally.
 
-See [.env.example](/Users/judahvijaiwilson/Website/github /project ig/diamond-banquet-hall/.env.example) for the full list.
+> **Crucial Keys:**
+> - `DIAMOND_SUPABASE_URL` / `DIAMOND_SUPABASE_ANON_KEY`
+> - `IMAGEKIT_PUBLIC_KEY` / `IMAGEKIT_PRIVATE_KEY` 
+> - `RESEND_API_KEY`
+> - `DIAMOND_SITE_URL` (Defaults to `https://diamond-banquet-hall.vercel.app`)
 
-## Vercel status
+### Vercel Deployment Note
+If encountering issues with the image upload authentication route (`GET /api/upload-auth`), ensure that **both** `IMAGEKIT_PUBLIC_KEY` and `IMAGEKIT_PRIVATE_KEY` are properly set in the Vercel Production/Preview environments and a redeployment has been triggered.
 
-As verified on 3 April 2026, the production Vercel deployment exposes the API routes:
+## 🗄 Supabase Setup (Gallery & Bookings)
 
-- `GET /api/upload-auth`
-- `POST /api/send-email`
+The admin portal uses the Supabase Storage bucket `venue-images` to handle uploads, which the public homepage then reads from.
 
-That means the earlier `404` issue is no longer the active production problem. After the ImageKit environment variables were added and redeployed, `GET /api/upload-auth` returned `200` successfully.
+To establish the required permissions, run the provided SQL scripts located in `/supabase`:
+- **`supabase/setup.sql`** (Full table schemas and RLS)
+- **`supabase/gallery-storage-setup.sql`** (Storage buckets and RLS policies)
 
-## Fixing the current Vercel error
-
-1. Open the Vercel project `diamond-banquet-hall`.
-2. Go to `Settings` -> `Environment Variables`.
-3. Add `IMAGEKIT_PRIVATE_KEY` for `Production`.
-4. Verify `IMAGEKIT_PUBLIC_KEY` is also present for `Production`.
-5. Redeploy the latest production build after saving the variables.
-
-If the same features should work on preview deployments, add the same keys to `Preview` as well.
-
-## Supabase gallery setup
-
-The admin gallery manager uses the Supabase Storage bucket `venue-images`. The public homepage gallery also reads from that same bucket.
-
-To enable uploads and deletes from the admin portal, either run the latest SQL in [supabase/setup.sql](/Users/judahvijaiwilson/Website/github /project ig/diamond-banquet-hall/supabase/setup.sql) or use the smaller [supabase/gallery-storage-setup.sql](/Users/judahvijaiwilson/Website/github /project ig/diamond-banquet-hall/supabase/gallery-storage-setup.sql) bootstrap inside the Supabase SQL Editor. The storage setup creates:
-
-- creates the `venue-images` bucket if it does not exist
-- allows public read access for homepage gallery rendering
-- allows only `super_admin` users to upload, replace, or delete gallery images
+*Storage architecture ensures public reads for the site while restricting upload/delete permissions strictly to `super_admin` roles.*
