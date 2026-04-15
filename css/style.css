@@ -923,7 +923,9 @@ section[id] {
   break-inside: avoid;
   -webkit-column-break-inside: avoid;
   border-radius: 24px;
-  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.45s ease;
 }
 
 .gallery-section .gallery-card > .gallery-item {
