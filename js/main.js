@@ -953,6 +953,133 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
+  const initializeTiltedCards = () => {
+    const cards = Array.from(document.querySelectorAll("[data-tilted-card]"));
+
+    if (!cards.length) {
+      return;
+    }
+
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+    const setCardDefaults = (container) => {
+      container.style.setProperty("--tilted-rotate-x", "0deg");
+      container.style.setProperty("--tilted-rotate-y", "0deg");
+      container.style.setProperty("--tilted-scale", "1");
+      container.style.setProperty("--tilted-pointer-x", "24px");
+      container.style.setProperty("--tilted-pointer-y", "24px");
+      container.style.setProperty("--tilted-caption-rotate", "0deg");
+    };
+
+    const resetCard = (container) => {
+      container.classList.remove("is-tilted-active");
+      setCardDefaults(container);
+    };
+
+    cards.forEach((card) => {
+      const container = card.closest(".feature-row__media");
+
+      if (!container) {
+        return;
+      }
+
+      let frameId = 0;
+      let nextPoint = null;
+      let lastOffsetY = 0;
+
+      const runTilt = ({ clientX, clientY }) => {
+        if (reducedMotionQuery.matches || !finePointerQuery.matches) {
+          resetCard(container);
+          return;
+        }
+
+        const rect = container.getBoundingClientRect();
+        const rotateAmplitude = Number.parseFloat(card.dataset.tiltAmplitude || "14");
+        const scaleOnHover = Number.parseFloat(card.dataset.tiltScale || "1.1");
+        const offsetX = clientX - rect.left - rect.width / 2;
+        const offsetY = clientY - rect.top - rect.height / 2;
+        const rotationX = (offsetY / (rect.height / 2)) * -rotateAmplitude;
+        const rotationY = (offsetX / (rect.width / 2)) * rotateAmplitude;
+        const captionX = clamp(clientX - rect.left + 16, 16, rect.width - 16);
+        const captionY = clamp(clientY - rect.top + 16, 16, rect.height - 16);
+        const velocityY = offsetY - lastOffsetY;
+
+        lastOffsetY = offsetY;
+
+        container.classList.add("is-tilted-active");
+        container.style.setProperty("--tilted-rotate-x", `${rotationX.toFixed(2)}deg`);
+        container.style.setProperty("--tilted-rotate-y", `${rotationY.toFixed(2)}deg`);
+        container.style.setProperty("--tilted-scale", String(scaleOnHover));
+        container.style.setProperty("--tilted-pointer-x", `${captionX}px`);
+        container.style.setProperty("--tilted-pointer-y", `${captionY}px`);
+        container.style.setProperty("--tilted-caption-rotate", `${(-velocityY * 0.6).toFixed(2)}deg`);
+      };
+
+      const queueTilt = (event) => {
+        nextPoint = {
+          clientX: event.clientX,
+          clientY: event.clientY
+        };
+
+        if (frameId) {
+          return;
+        }
+
+        frameId = window.requestAnimationFrame(() => {
+          frameId = 0;
+
+          if (nextPoint) {
+            runTilt(nextPoint);
+          }
+        });
+      };
+
+      const handleLeave = () => {
+        if (frameId) {
+          window.cancelAnimationFrame(frameId);
+          frameId = 0;
+        }
+
+        nextPoint = null;
+        lastOffsetY = 0;
+        resetCard(container);
+      };
+
+      card.addEventListener("pointerenter", queueTilt);
+      card.addEventListener("pointermove", queueTilt);
+      card.addEventListener("pointerleave", handleLeave);
+      card.addEventListener("pointercancel", handleLeave);
+
+      setCardDefaults(container);
+    });
+
+    const syncCardAvailability = () => {
+      if (!finePointerQuery.matches || reducedMotionQuery.matches) {
+        cards.forEach((card) => {
+          const container = card.closest(".feature-row__media");
+
+          if (!container) {
+            return;
+          }
+
+          resetCard(container);
+        });
+      }
+    };
+
+    if (typeof finePointerQuery.addEventListener === "function") {
+      finePointerQuery.addEventListener("change", syncCardAvailability);
+    }
+
+    if (typeof reducedMotionQuery.addEventListener === "function") {
+      reducedMotionQuery.addEventListener("change", syncCardAvailability);
+    }
+
+    syncCardAvailability();
+  };
+
 
   /**
    * Cinematic Scroll Parallax
@@ -1204,6 +1331,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initializeFaq();
   initializeCustomCursor();
   initializeMagneticHover();
+  initializeTiltedCards();
   initializeParallax();
   toggleHeader();
 

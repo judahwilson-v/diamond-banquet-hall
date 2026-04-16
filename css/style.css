@@ -619,6 +619,12 @@ section[id] {
 }
 
 .feature-row__media {
+  --tilted-rotate-x: 0deg;
+  --tilted-rotate-y: 0deg;
+  --tilted-scale: 1;
+  --tilted-pointer-x: 24px;
+  --tilted-pointer-y: 24px;
+  --tilted-caption-rotate: 0deg;
   position: relative;
   margin: 0;
   padding: clamp(10px, 1.4vw, 14px);
@@ -637,6 +643,10 @@ section[id] {
     0 22px 54px rgba(10, 10, 10, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
   isolation: isolate;
+  perspective: 800px;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
   transition:
     transform var(--ease),
     box-shadow var(--ease);
@@ -678,13 +688,87 @@ section[id] {
   object-fit: cover;
 }
 
-.feature-row__media img {
+.tilted-card__inner {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  border-radius: 22px;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transform:
+    rotateX(var(--tilted-rotate-x))
+    rotateY(var(--tilted-rotate-y))
+    scale(var(--tilted-scale));
+  transition:
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    filter var(--ease);
+}
+
+.tilted-card__image {
   border-radius: 22px;
   box-shadow: 0 12px 30px rgba(10, 10, 10, 0.14);
   transform: scale(1.01);
   transition:
     transform var(--ease),
     filter var(--ease);
+}
+
+.tilted-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  padding: clamp(18px, 3vw, 26px);
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 10, 10, 0.04) 0%,
+      rgba(10, 10, 10, 0.16) 52%,
+      rgba(10, 10, 10, 0.64) 100%
+    );
+  transform: translateZ(30px);
+  pointer-events: none;
+}
+
+.tilted-card__overlay-text {
+  font-size: 0.74rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(249, 249, 249, 0.96);
+  text-shadow: 0 8px 24px rgba(10, 10, 10, 0.45);
+}
+
+.tilted-card__caption {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #2d2d2d;
+  box-shadow: 0 12px 28px rgba(10, 10, 10, 0.12);
+  font-size: 0.64rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate3d(var(--tilted-pointer-x), var(--tilted-pointer-y), 0)
+    rotate(var(--tilted-caption-rotate));
+  transition:
+    opacity 0.22s ease,
+    transform 0.18s ease;
+}
+
+.feature-row__media.is-tilted-active .tilted-card__caption {
+  opacity: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -695,7 +779,7 @@ section[id] {
       inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
 
-  .feature-row:hover .feature-row__media img {
+  .feature-row:hover .tilted-card__image {
     transform: scale(1.04);
     filter: saturate(1.03);
   }
@@ -2241,6 +2325,10 @@ body.keyboard-open .floating-contact-bar {
     overflow: visible;
   }
 
+  .tilted-card__caption {
+    display: none;
+  }
+
   .gallery-masonry {
     column-count: 2;
   }
@@ -2329,6 +2417,14 @@ body.keyboard-open .floating-contact-bar {
   .review-card {
     width: min(86vw, 320px);
     padding: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilted-card__inner,
+  .tilted-card__caption,
+  .tilted-card__image {
+    transition: none;
   }
 }
 
