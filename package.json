@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "node ./scripts/build.mjs --runtime-config-file=.env",
+    "build": "node ./scripts/build.mjs",
     "dev": "npm run build && npx serve dist"
   },
   "devDependencies": {

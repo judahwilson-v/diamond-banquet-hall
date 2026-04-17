@@ -49,6 +49,7 @@ Important:
 - Never end a relevant conversation without suggesting WhatsApp or call.`;
 
 const normalizeText = (value) => String(value ?? "").trim();
+const pickFirstNonEmpty = (...values) => values.map(normalizeText).find(Boolean) || "";
 
 const readBody = (body) => {
   if (!body) {
@@ -104,12 +105,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
-  const apiKey = normalizeText(process.env.GEMINI_API_KEY);
+  const apiKey = pickFirstNonEmpty(process.env.GEMINI_API_KEY, process.env.GOOGLE_API_KEY);
   const model = normalizeText(process.env.GEMINI_MODEL) || DEFAULT_MODEL;
 
   if (!apiKey) {
-    console.error("GEMINI_API_KEY is missing");
-    return res.status(500).json({ success: false, error: "Chat service is not configured" });
+    console.error("Chat API key is missing");
+    return res.status(503).json({ success: false, error: "Chat service is not configured" });
   }
 
   const body = readBody(req.body);
@@ -120,12 +121,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), 15000);
     const response = await fetch(`${GEMINI_API_BASE}/${model}:generateContent`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": apiKey
       },
+      signal: timeoutController.signal,
       body: JSON.stringify({
         system_instruction: {
           parts: [{ text: SYSTEM_INSTRUCTION }]
@@ -137,7 +141,7 @@ export default async function handler(req, res) {
           topP: 0.9
         }
       })
-    });
+    }).finally(() => clearTimeout(timeoutId));
 
     const payload = await response.json().catch(() => null);
 
@@ -163,6 +167,11 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, reply });
   } catch (error) {
+    if (error?.name === "AbortError") {
+      console.error("Gemini request timed out");
+      return res.status(504).json({ success: false, error: "Chat service timed out" });
+    }
+
     console.error("Gemini request error", error);
     return res.status(500).json({ success: false, error: "Chat service request failed" });
   }

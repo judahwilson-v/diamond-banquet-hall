@@ -257,6 +257,11 @@ h3,
   gap: 24px;
 }
 
+#bubble-menu-container {
+  display: none;
+}
+
+
 .site-logo {
   font-size: clamp(1.5rem, 2.5vw, 2.1rem);
   color: var(--color-gold);
@@ -346,6 +351,27 @@ h3,
     border-color var(--ease),
     color var(--ease);
 }
+
+@media (max-width: 992px) {
+  .site-header {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .site-nav {
+    display: none !important;
+  }
+  .nav-toggle {
+    display: none !important; /* replaced by bubble menu toggle */
+  }
+  #bubble-menu-container {
+    display: block !important;
+  }
+  .mobile-menu {
+    display: none !important; /* replaced by bubble menu items */
+  }
+}
+
 
 .site-header.is-scrolled .nav-toggle {
   border-color: rgba(10, 10, 10, 0.12);
@@ -803,6 +829,24 @@ section[id] {
   column-count: 3;
   column-gap: 18px;
 }
+
+#circular-gallery-container {
+  display: none;
+}
+
+@media (max-width: 992px) {
+  .gallery-masonry--home {
+    display: none !important;
+  }
+  
+  #circular-gallery-container {
+    display: block !important;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-bottom: 30px;
+  }
+}
+
 
 .gallery-item {
   width: 100%;
