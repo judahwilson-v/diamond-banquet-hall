@@ -1106,15 +1106,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const toggleHeader = () => {
     const header = document.querySelector(".site-header");
-    const concierge = document.getElementById("mobile-concierge");
     if (!header) return;
 
     const isScrolled = window.scrollY > 24;
     header.classList.toggle("is-scrolled", isScrolled);
-    
-    if (concierge) {
-      concierge.classList.toggle("is-visible", window.scrollY > 300);
-    }
   };
 
   const handleReveal = () => {
