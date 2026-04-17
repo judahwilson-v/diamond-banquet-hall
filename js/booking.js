@@ -7,6 +7,7 @@ import {
   submitBookingRequest,
   subscribeToVenueUpdates
 } from "./site-data.js";
+import { openConciergeChat } from "./concierge-loader.js";
 import { SUPABASE_CONFIG_ERROR } from "./supabase-config.js";
 
 const FIXED_BOOKING_START = "06:00";
@@ -965,6 +966,7 @@ const submitModule = {
 
 document.addEventListener("DOMContentLoaded", async () => {
   const today = new Date();
+  const conciergeChatButtons = document.querySelectorAll("[data-open-concierge-chat]");
   const state = {
     siteSettings: { ...DEFAULT_SITE_SETTINGS },
     currentMonth: new Date(today.getFullYear(), today.getMonth(), 1),
@@ -1048,6 +1050,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   formModule.init(state);
   successModule.init(state);
   submitModule.init(state);
+
+  conciergeChatButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      void openConciergeChat(button);
+    });
+  });
 
   await refreshSiteSettings({ silent: false });
 

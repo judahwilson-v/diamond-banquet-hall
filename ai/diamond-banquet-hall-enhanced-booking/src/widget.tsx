@@ -15,6 +15,7 @@ declare global {
   interface Window {
     DiamondConciergeWidget?: {
       mount: typeof mountDiamondConcierge;
+      open: typeof openDiamondConcierge;
     };
   }
 }
@@ -73,15 +74,36 @@ export function mountDiamondConcierge(target?: HTMLElement | null) {
   return host.__diamondConciergeRoot;
 }
 
-const boot = () => {
-  mountDiamondConcierge();
-  window.DiamondConciergeWidget = {
-    mount: mountDiamondConcierge,
-  };
-};
+export function openDiamondConcierge(target?: HTMLElement | null) {
+  mountDiamondConcierge(target);
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', boot, { once: true });
-} else {
-  boot();
+  const host = ensureHost(target);
+
+  const tryOpen = (attempt = 0) => {
+    const toggle = host.shadowRoot?.querySelector(
+      '[data-diamond-concierge-toggle]'
+    ) as HTMLButtonElement | null;
+
+    if (!(toggle instanceof HTMLButtonElement)) {
+      if (attempt < 8) {
+        window.setTimeout(() => {
+          tryOpen(attempt + 1);
+        }, 120);
+      }
+      return;
+    }
+
+    if (toggle.getAttribute('aria-expanded') !== 'true') {
+      toggle.click();
+    } else {
+      toggle.focus();
+    }
+  };
+
+  tryOpen();
 }
+
+window.DiamondConciergeWidget = {
+  mount: mountDiamondConcierge,
+  open: openDiamondConcierge,
+};
