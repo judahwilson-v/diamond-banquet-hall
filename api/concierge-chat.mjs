@@ -117,14 +117,22 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error("Gemini request failed", response.status, payload);
-      return res.status(502).json({ success: false, error: "Chat service request failed" });
+      return res.status(502).json({
+        success: false,
+        error: payload?.error?.message || payload?.error || "Chat service request failed",
+        details: payload
+      });
     }
 
     const reply = extractReplyText(payload);
 
     if (!reply) {
       console.error("Gemini response missing text", payload);
-      return res.status(502).json({ success: false, error: "Chat service returned no reply" });
+      return res.status(502).json({
+        success: false,
+        error: "Chat service returned no reply",
+        details: payload
+      });
     }
 
     return res.status(200).json({ success: true, reply });
