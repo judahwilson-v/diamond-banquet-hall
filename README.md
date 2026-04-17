@@ -4,10 +4,12 @@ A static marketing site and full-featured admin portal designed exclusively for 
 
 ## 🛠 Tech Stack & Services
 - Static UI delivery via HTML/CSS/JS
+- React/Vite AI concierge widget embedded into `booking.html`
 - Hosted on **Vercel** with Serverless API Routes (`/api`)
 - **Supabase** for database and storage
 - **ImageKit** for optimized image handling
 - **Resend** for transactional email handling
+- **Gemini API** for concierge chat responses
 
 ## 🚀 Environment Variables setup
 
@@ -17,10 +19,13 @@ The project requires several environment variables for production functionality.
 > - `DIAMOND_SUPABASE_URL` / `DIAMOND_SUPABASE_ANON_KEY`
 > - `IMAGEKIT_PUBLIC_KEY` / `IMAGEKIT_PRIVATE_KEY` 
 > - `RESEND_API_KEY`
+> - `GEMINI_API_KEY`
 > - `DIAMOND_SITE_URL` (Defaults to `https://diamond-banquet-hall.vercel.app`)
 
 ### Vercel Deployment Note
 If encountering issues with the image upload authentication route (`GET /api/upload-auth`), ensure that **both** `IMAGEKIT_PUBLIC_KEY` and `IMAGEKIT_PRIVATE_KEY` are properly set in the Vercel Production/Preview environments and a redeployment has been triggered.
+
+The booking page chatbot is bundled from `ai/diamond-banquet-hall-enhanced-booking` during `npm run build`, then mounted as a floating overlay on `booking.html`. Its Gemini requests are routed through `/api/concierge-chat`, so `GEMINI_API_KEY` must be set on the Vercel project for live responses.
 
 ## 🗄 Supabase Setup (Gallery & Bookings)
 

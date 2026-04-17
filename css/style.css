@@ -1340,6 +1340,26 @@ section[id] {
   padding: 0 22px 22px;
 }
 
+.faq-section__cta {
+  width: var(--container);
+  margin: 28px auto 0;
+  padding: clamp(24px, 4vw, 34px);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(247, 241, 228, 0.92));
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  text-align: center;
+  box-shadow: 0 20px 45px rgba(10, 10, 10, 0.05);
+}
+
+.faq-section__cta-copy {
+  max-width: 620px;
+  color: rgba(10, 10, 10, 0.74);
+}
+
 .reviews-section__heading {
   text-align: center;
   justify-items: center;

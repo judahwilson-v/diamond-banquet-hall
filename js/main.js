@@ -75,6 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const lightboxPrev = document.getElementById("lightbox-prev");
   const lightboxNext = document.getElementById("lightbox-next");
   const faqButtons = document.querySelectorAll(".faq-item__button");
+  const conciergeChatButtons = document.querySelectorAll("[data-open-concierge-chat]");
   const reviewsTrack = document.getElementById("reviews-track");
   const reviewsMarquee = document.getElementById("reviews-marquee");
   const reviewsMobileTrack = document.getElementById("reviews-mobile-track");
@@ -1231,6 +1232,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
+  const openConciergeChat = () => {
+    window.DiamondConciergeWidget?.mount?.();
+
+    const tryOpen = (attempt = 0) => {
+      const host = document.getElementById("diamond-concierge-widget-host");
+      const toggle = host?.shadowRoot?.querySelector("button[aria-expanded]");
+
+      if (!(toggle instanceof HTMLButtonElement)) {
+        if (attempt < 8) {
+          window.setTimeout(() => {
+            tryOpen(attempt + 1);
+          }, 120);
+        }
+        return;
+      }
+
+      if (toggle.getAttribute("aria-expanded") !== "true") {
+        toggle.click();
+      } else {
+        toggle.focus();
+      }
+    };
+
+    tryOpen();
+  };
+
   const syncKeyboardState = () => {
     const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     const keyboardOpen = window.innerWidth <= 768 && baseViewportHeight - viewportHeight > 140;
@@ -1348,6 +1375,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   openCalendarButtons.forEach((button) => {
     button.addEventListener("click", openModal);
+  });
+
+  conciergeChatButtons.forEach((button) => {
+    button.addEventListener("click", openConciergeChat);
   });
 
   navToggle?.addEventListener("click", toggleMobileMenu);
