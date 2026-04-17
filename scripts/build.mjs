@@ -1,11 +1,15 @@
+import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 
 const rootDir = process.cwd();
 const distDir = join(rootDir, "dist");
 const runtimeConfigPath = join(distDir, "js", "runtime-config.js");
+const aiAppDir = join(rootDir, "ai", "diamond-banquet-hall-enhanced-booking");
+const aiWidgetDir = join(aiAppDir, "dist-widget");
 const DEFAULT_SITE_URL = "https://diamond-banquet-hall.vercel.app";
 const SITE_URL_TOKEN = "__SITE_URL__";
+const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
 const buildPaths = {
   html: ["index.html", "booking.html", "gallery.html", "admin.html", "login.html", "_headers"],
@@ -214,6 +218,33 @@ const ensureDir = (directoryPath) => {
   mkdirSync(directoryPath, { recursive: true });
 };
 
+const runCommand = (command, args, options = {}) => {
+  execFileSync(command, args, {
+    cwd: rootDir,
+    env: process.env,
+    stdio: "inherit",
+    ...options
+  });
+};
+
+const buildAiWidget = () => {
+  if (!existsSync(aiAppDir)) {
+    throw new Error(`AI widget app not found: ${aiAppDir}`);
+  }
+
+  if (!existsSync(join(aiAppDir, "node_modules"))) {
+    runCommand(npmCommand, ["ci"], { cwd: aiAppDir });
+  }
+
+  runCommand(npmCommand, ["run", "build:widget"], { cwd: aiAppDir });
+
+  if (!existsSync(aiWidgetDir)) {
+    throw new Error(`AI widget build output not found: ${aiWidgetDir}`);
+  }
+
+  cpSync(aiWidgetDir, join(distDir, "ai-widget"), { recursive: true });
+};
+
 const replaceSiteUrlToken = (filePath) => {
   if (!existsSync(filePath)) {
     return;
@@ -297,3 +328,5 @@ writeFileSync(
   `window.DIAMOND_RUNTIME_CONFIG = ${JSON.stringify(runtimeConfig, null, 2)};\n`,
   "utf8"
 );
+
+buildAiWidget();
