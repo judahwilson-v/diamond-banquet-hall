@@ -143,8 +143,13 @@ const readRuntimeConfigFile = (filePath) => {
 };
 
 const cliArgs = readCliArgs(process.argv.slice(2));
+const defaultRuntimeConfigPath = existsSync(join(rootDir, ".env.local"))
+  ? join(rootDir, ".env.local")
+  : existsSync(join(rootDir, ".env"))
+    ? join(rootDir, ".env")
+    : "";
 const fileConfig = readRuntimeConfigFile(
-  firstNonEmpty(cliArgs.configFile, process.env[ENV_VAR_NAMES.configFile])
+  firstNonEmpty(cliArgs.configFile, process.env[ENV_VAR_NAMES.configFile], defaultRuntimeConfigPath)
 );
 
 const normalizeSiteUrl = (value) => {
@@ -166,7 +171,9 @@ console.log("BUILD CONTEXT:", {
   cfPages: process.env.CF_PAGES,
   branch: process.env.CF_PAGES_BRANCH,
   commit: process.env.CF_PAGES_COMMIT_SHA,
-  runtimeConfigFile: firstNonEmpty(cliArgs.configFile, process.env[ENV_VAR_NAMES.configFile]) || null
+  runtimeConfigFile:
+    firstNonEmpty(cliArgs.configFile, process.env[ENV_VAR_NAMES.configFile], defaultRuntimeConfigPath) ||
+    null
 });
 
 const siteUrl = normalizeSiteUrl(

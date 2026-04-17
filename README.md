@@ -22,10 +22,12 @@ The project requires several environment variables for production functionality.
 > - `GEMINI_API_KEY`
 > - `DIAMOND_SITE_URL` (Defaults to `https://diamond-banquet-hall.vercel.app`)
 
+Do not commit `.env` files. Keep secrets only in local `.env.local` and in Vercel project environment variables.
+
 ### Vercel Deployment Note
 If encountering issues with the image upload authentication route (`GET /api/upload-auth`), ensure that **both** `IMAGEKIT_PUBLIC_KEY` and `IMAGEKIT_PRIVATE_KEY` are properly set in the Vercel Production/Preview environments and a redeployment has been triggered.
 
-The booking page chatbot is bundled from `ai/diamond-banquet-hall-enhanced-booking` during `npm run build`, then mounted as a floating overlay on `booking.html`. Its Gemini requests are routed through `/api/concierge-chat`, so `GEMINI_API_KEY` must be set on the Vercel project for live responses.
+The booking page chatbot is bundled from `ai/diamond-banquet-hall-enhanced-booking` during `npm run build`, then mounted as a floating overlay on `booking.html`. Its Gemini requests are routed through `/api/concierge-chat`, so `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) must be set on the Vercel project for live responses.
 
 ## 🗄 Supabase Setup (Gallery & Bookings)
 
