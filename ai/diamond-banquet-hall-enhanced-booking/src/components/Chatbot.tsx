@@ -182,6 +182,7 @@ export function Chatbot({ endpoint = DEFAULT_ENDPOINT }: ChatbotProps) {
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
         type="button"
+        data-diamond-concierge-toggle
         aria-label={isOpen ? 'Close concierge chat' : 'Open concierge chat'}
         aria-expanded={isOpen}
         className="fixed bottom-6 right-4 sm:right-8 w-14 h-14 bg-amber-600 text-white rounded-full shadow-xl flex items-center justify-center hover:bg-amber-700 transition z-50 border-4 border-white"

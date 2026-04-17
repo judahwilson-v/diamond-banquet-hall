@@ -1,4 +1,5 @@
 import { curatedTestimonials } from "./reviews.js";
+import { openConciergeChat } from "./concierge-loader.js";
 
 const FALLBACK_SITE_SETTINGS = {
   venueName: "Diamond Banquet Hall",
@@ -933,23 +934,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         const moveX = (mouseX - centerX) * 0.05;
         const moveY = (mouseY - centerY) * 0.05;
 
-        // Rim Light Shimmer Calculation
-        const shimmerX = ((mouseX - centerX) / (width / 2)) * 100 + 50;
-
         heroTitle.style.transform = `perspective(1000px) translate3d(${moveX}px, ${moveY}px, 20px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        heroTitle.style.setProperty("--shimmer-pos", `${shimmerX}%`);
-        
-        // Dynamically update the ::after pseudo element's background via property
-        const shine = heroTitle.style;
-        const backgroundPos = 150 - (shimmerX * 1.5);
-        heroTitle.classList.add('has-tilt');
-        heroTitle.style.setProperty('--shine-pos', `${backgroundPos}%`);
       });
 
       heroTitle.addEventListener("mouseleave", () => {
         heroTitle.style.transform = "perspective(1000px) translate3d(0, 0, 0) rotateX(0) rotateY(0)";
-        heroTitle.style.setProperty('--shine-pos', '150%');
-        heroTitle.classList.remove('has-tilt');
       });
     }
   };
@@ -1106,15 +1095,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const toggleHeader = () => {
     const header = document.querySelector(".site-header");
-    const concierge = document.getElementById("mobile-concierge");
     if (!header) return;
 
     const isScrolled = window.scrollY > 24;
     header.classList.toggle("is-scrolled", isScrolled);
-    
-    if (concierge) {
-      concierge.classList.toggle("is-visible", window.scrollY > 300);
-    }
   };
 
   const handleReveal = () => {
@@ -1230,32 +1214,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     });
-  };
-
-  const openConciergeChat = () => {
-    window.DiamondConciergeWidget?.mount?.();
-
-    const tryOpen = (attempt = 0) => {
-      const host = document.getElementById("diamond-concierge-widget-host");
-      const toggle = host?.shadowRoot?.querySelector("button[aria-expanded]");
-
-      if (!(toggle instanceof HTMLButtonElement)) {
-        if (attempt < 8) {
-          window.setTimeout(() => {
-            tryOpen(attempt + 1);
-          }, 120);
-        }
-        return;
-      }
-
-      if (toggle.getAttribute("aria-expanded") !== "true") {
-        toggle.click();
-      } else {
-        toggle.focus();
-      }
-    };
-
-    tryOpen();
   };
 
   const syncKeyboardState = () => {
@@ -1378,7 +1336,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   conciergeChatButtons.forEach((button) => {
-    button.addEventListener("click", openConciergeChat);
+    button.addEventListener("click", () => {
+      void openConciergeChat(button);
+    });
   });
 
   navToggle?.addEventListener("click", toggleMobileMenu);
